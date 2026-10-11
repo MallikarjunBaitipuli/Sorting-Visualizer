@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interactive Sorting Visualizer</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- App Header -->
+  <header class="app-header">
+    <div class="brand-title">
+      <div>
+        <h1>Interactive Sorting Visualizer</h1>
+        <p>Step-by-step algorithm animation, real-life examples & complexity analysis</p>
+      </div>
+    </div>
+
+    <div class="algo-select-wrapper">
+      <label for="algorithm-select">Select Algorithm:</label>
+      <select id="algorithm-select" class="styled-select">
+        <option value="bubble">1. Bubble Sort (Incremental)</option>
+        <option value="selection">2. Selection Sort (In-Place)</option>
+        <option value="insertion">3. Insertion Sort (Adaptive)</option>
+        <option value="merge">4. Merge Sort (Divide & Conquer)</option>
+        <option value="quick">5. Quick Sort (Partitioning)</option>
+        <option value="heap">6. Heap Sort (Max-Heapify)</option>
+      </select>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="main-content">
+
+    <!-- 1. Custom Array Input Card -->
+    <section class="tester-input-card">
+      <div class="section-header">
+        <h2>
+          <span>📥 Custom Array Input</span>
+        </h2>
+        <span class="preset-label">Format: Comma or Space-separated integers (e.g. 64, 34, 25, 12, 22, 11, 90)</span>
+      </div>
+
+      <div class="input-row">
+        <input 
+          type="text" 
+          id="custom-array-input" 
+          class="styled-input" 
+          placeholder="Enter numbers e.g. 45, 12, 85, 32, 89, 39, 69, 44, 1"
+          spellcheck="false"
+        />
+        <button id="load-array-btn" class="btn-primary">
+          <span>Apply Array</span>
+        </button>
+      </div>
+
+      <!-- Presets for fast test cases -->
+      <div class="presets-container">
+        <span class="preset-label">Quick Presets:</span>
+        <button id="preset-random" class="btn-preset">🎲 Random</button>
+        <button id="preset-sorted" class="btn-preset">📈 Sorted</button>
+        <button id="preset-reverse" class="btn-preset">📉 Reverse Sorted</button>
+        <button id="preset-nearly" class="btn-preset">⚡ Nearly Sorted</button>
+        <button id="preset-duplicates" class="btn-preset">♊ Duplicates</button>
+      </div>
+
+      <div id="input-error-msg" class="error-alert"></div>
+    </section>
+
+    <!-- 2. Interactive Control Toolbar -->
+    <section class="controls-card">
+      <div class="playback-group">
+        <button id="play-pause-btn" class="btn-control btn-play">
+          <span id="play-pause-icon">▶</span>
+          <span id="play-pause-text">Play</span>
+        </button>
+        <button id="step-back-btn" class="btn-control" title="Step Backward (Previous Frame)">
+          <span>⏮ Step Back</span>
+        </button>
+        <button id="step-forward-btn" class="btn-control" title="Step Forward (Next Frame)">
+          <span>Step Next ⏭</span>
+        </button>
+        <button id="reset-btn" class="btn-control btn-reset" title="Reset array to initial state">
+          <span>↺ Reset</span>
+        </button>
+      </div>
+
+      <div class="scrubber-group">
+        <input type="range" id="timeline-slider" class="timeline-slider" min="0" max="0" value="0" />
+        <span id="step-counter-text" class="step-counter">Step 1 of 1</span>
+      </div>
+
+      <div class="settings-group">
+        <div class="slider-field">
+          <label for="speed-slider">Speed:</label>
+          <input type="range" id="speed-slider" class="speed-slider" min="1" max="5" value="3" />
+          <span id="speed-label" class="speed-label">1.0x (Normal)</span>
+        </div>
+
+        <label class="toggle-field">
+          <input type="checkbox" id="sound-toggle" />
+          <span>🔊 Sound</span>
+        </label>
+      </div>
+    </section>
+
+    <!-- 3. Live Step-by-Step Explanation Banner -->
+    <section class="explanation-card">
+      <span class="explanation-icon">💡</span>
+      <div id="step-explanation-text" class="explanation-text">
+        Ready to visualize. Click "Play" or use "Step Next" to trace the algorithm step-by-step.
+      </div>
+    </section>
+
+    <!-- 4. Visualizer Stage (Number Cards & Pointers) -->
+    <section class="stage-card">
+      <div class="stage-title">Array Elements & Active Pointers</div>
+      
+      <!-- Main Array Container -->
+      <div id="main-array-container" class="array-container">
+        <!-- Rendered dynamically by visualizer.js -->
+      </div>
+
+      <!-- Auxiliary Array Container (for Merge Sort) -->
+      <div id="aux-array-section" class="aux-array-section">
+        <div class="aux-title">Auxiliary Buffer / Working Array</div>
+        <div id="aux-array-container" class="array-container">
+          <!-- Rendered dynamically during Merge Sort -->
+        </div>
+      </div>
+
+      <!-- Stage Legend -->
+      <div class="stage-legend">
+        <div class="legend-item"><span class="legend-dot dot-default"></span> Unsorted</div>
+        <div class="legend-item"><span class="legend-dot dot-comparing"></span> Comparing (?)</div>
+        <div class="legend-item"><span class="legend-dot dot-swapping"></span> Swapping / Writing</div>
+        <div class="legend-item"><span class="legend-dot dot-pivot"></span> Pivot / Key</div>
+        <div class="legend-item"><span class="legend-dot dot-sorted"></span> Sorted / In-Place (✓)</div>
+      </div>
+    </section>
+
+    <!-- 5. Metrics & Pseudocode Analysis Grid -->
+    <section class="analysis-grid">
+      
+      <!-- Left Column: Live Counters & Theoretical Complexity -->
+      <div class="analysis-card">
+        <div class="section-header">
+          <h2>📊 Complexity & Operation Metrics</h2>
+          <span id="algo-category-badge" class="badge-tag badge-blue">Category</span>
+        </div>
+
+        <!-- Live Operations Metrics -->
+        <div class="metrics-row">
+          <div class="metric-box">
+            <div class="metric-label">Comparisons (C)</div>
+            <div id="metric-comparisons" class="metric-value">0</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-label">Swaps / Writes (S)</div>
+            <div id="metric-swaps" class="metric-value">0</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-label">Array Accesses</div>
+            <div id="metric-accesses" class="metric-value">0</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-label">Elapsed Time</div>
+            <div id="metric-time" class="metric-value">0 ms</div>
+          </div>
+        </div>
+
+        <!-- Theoretical Big-O Table -->
+        <div class="complexity-table-wrapper">
+          <table class="complexity-table">
+            <thead>
+              <tr>
+                <th>Best Time</th>
+                <th>Avg Time</th>
+                <th>Worst Time</th>
+                <th>Aux Space</th>
+                <th>In-Place</th>
+                <th>Stable</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span id="time-best-val" class="badge-tag badge-green">O(n)</span></td>
+                <td><span id="time-avg-val" class="badge-tag badge-purple">O(n²)</span></td>
+                <td><span id="time-worst-val" class="badge-tag badge-purple">O(n²)</span></td>
+                <td><span id="space-worst-val" class="badge-tag badge-blue">O(1)</span></td>
+                <td id="inplace-val">Yes</td>
+                <td id="stable-val">Yes</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Recurrence & Analysis Points -->
+        <div class="daa-analysis-box">
+          <h4>Recurrence Relation: <span id="recurrence-val" style="color: #93c5fd; font-family: monospace;">T(n) = T(n-1) + O(n)</span></h4>
+          <ul id="daa-analysis-list">
+            <!-- Populated dynamically -->
+          </ul>
+        </div>
+      </div>
+
+      <!-- Right Column: Synchronized Pseudocode & Line Tracker -->
+      <div class="analysis-card">
+        <div class="section-header">
+          <h2 id="algo-name-title">Algorithm Pseudocode</h2>
+          <span class="badge-tag badge-purple">Live Line Tracer</span>
+        </div>
+        <p id="algo-description" style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.75rem;"></p>
+
+        <!-- Pseudocode container -->
+        <div id="pseudocode-lines-container" class="pseudocode-container">
+          <!-- Lines rendered dynamically -->
+        </div>
+      </div>
+
+    </section>
+
+    <!-- 6. Real-Life Applications, Uses & Drawbacks Section -->
+    <section class="real-life-section">
+      <div class="section-header">
+        <h2>
+          <span>🌍 Real-Life Examples, Applications & Limitations</span>
+        </h2>
+        <span class="badge-tag badge-blue">Practical Engineering Guide</span>
+      </div>
+
+      <div class="real-life-grid">
+        
+        <!-- Left Column: Real-Life Analogy & Practical Uses -->
+        <div class="real-life-card">
+          <div class="analogy-header">
+            <span class="analogy-badge">Intuitive Real-Life Analogy</span>
+            <h3 id="real-life-analogy-title">🫧 Carbonated Bubbles / School Height Line</h3>
+          </div>
+          <p id="real-life-story" class="analogy-story-text">
+            Imagine a line of students standing in random order...
+          </p>
+
+          <div class="practical-uses-box">
+            <h4>💼 Where It Is Used in Industry & Systems:</h4>
+            <ul id="practical-uses-list" class="uses-bullets">
+              <!-- Populated dynamically -->
+            </ul>
+          </div>
+        </div>
+
+        <!-- Right Column: Advantages vs Drawbacks -->
+        <div class="real-life-card">
+          <div class="pros-cons-grid">
+            
+            <!-- Advantages -->
+            <div class="pros-box">
+              <div class="pros-header">
+                <span class="pros-icon">✅</span>
+                <h4>Key Advantages</h4>
+              </div>
+              <ul id="advantages-list" class="pros-list">
+                <!-- Populated dynamically -->
+              </ul>
+            </div>
+
+            <!-- Drawbacks -->
+            <div class="cons-box">
+              <div class="cons-header">
+                <span class="cons-icon">⚠️</span>
+                <h4>Drawbacks & Limitations</h4>
+              </div>
+              <ul id="drawbacks-list" class="cons-list">
+                <!-- Populated dynamically -->
+              </ul>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Interactive Chatbot & Doubt-Solver Widget -->
+  <button id="chatbot-launcher-btn" class="chatbot-launcher" title="Need help? Ask your algorithm doubts!">
+    <span class="bot-icon">💬</span>
+    <span>Ask Doubts</span>
+    <span id="chatbot-unread-badge" class="unread-badge"></span>
+  </button>
+
+  <div id="chatbot-window" class="chatbot-window">
+    <div class="chatbot-header">
+      <div class="chatbot-header-info">
+        <div class="chatbot-avatar">🤖</div>
+        <div class="chatbot-header-title">
+          <h3>Algorithm Assistant</h3>
+          <span class="chatbot-status">Online • Ready to help</span>
+        </div>
+      </div>
+      <button id="chatbot-close-btn" class="chatbot-close-btn" title="Close chat">✕</button>
+    </div>
+
+    <div id="chatbot-messages" class="chatbot-messages">
+      <!-- Messages rendered dynamically -->
+    </div>
+
+    <div id="chatbot-suggestions" class="chatbot-suggestions">
+      <!-- Dynamic doubt chips rendered here -->
+    </div>
+
+    <div class="chatbot-input-bar">
+      <input 
+        type="text" 
+        id="chatbot-input" 
+        class="chatbot-input" 
+        placeholder="Type your doubt (e.g. Why is Quick Sort faster?)..." 
+        autocomplete="off"
+      />
+      <button id="chatbot-send-btn" class="chatbot-send-btn" title="Send message">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"></line>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Toast Notification element -->
+  <div id="toast-banner" class="toast-banner"></div>
+
+  <!-- Scripts in dependency order -->
+  <script src="js/complexityData.js"></script>
+  <script src="js/pseudocode.js"></script>
+  <script src="js/algorithms/bubbleSort.js"></script>
+  <script src="js/algorithms/selectionSort.js"></script>
+  <script src="js/algorithms/insertionSort.js"></script>
+  <script src="js/algorithms/mergeSort.js"></script>
+  <script src="js/algorithms/quickSort.js"></script>
+  <script src="js/algorithms/heapSort.js"></script>
+  <script src="js/visualizer.js"></script>
+  <script src="js/chatbot.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

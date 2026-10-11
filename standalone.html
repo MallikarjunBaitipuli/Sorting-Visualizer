@@ -1,0 +1,3981 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interactive Sorting Visualizer</title>
+  <style>
+/* --- Global Reset & CSS Variables (White & Green Theme) --- */
+:root {
+  --bg-main: #f4fbf7;
+  --bg-card: #ffffff;
+  --bg-card-alt: #f0fdf4;
+  --bg-input: #f8fafc;
+  --border-color: #d1fae5;
+  --border-subtle: #e2e8f0;
+  --border-focus: #10b981;
+  
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --text-accent: #059669;
+  --text-accent-hover: #047857;
+
+  /* State Colors for Number Cards (High Contrast & Vibrant) */
+  --state-default-bg: #ffffff;
+  --state-default-border: #cbd5e1;
+  --state-default-text: #0f172a;
+
+  --state-comparing-bg: #fef3c7;
+  --state-comparing-border: #f59e0b;
+  --state-comparing-text: #92400e;
+
+  --state-swapping-bg: #ffe4e6;
+  --state-swapping-border: #f43f5e;
+  --state-swapping-text: #9f1239;
+
+  --state-pivot-bg: #f3e8ff;
+  --state-pivot-border: #a855f7;
+  --state-pivot-text: #6b21a8;
+
+  --state-sorted-bg: #d1fae5;
+  --state-sorted-border: #10b981;
+  --state-sorted-text: #065f46;
+
+  --state-selected-bg: #ccfbf1;
+  --state-selected-border: #14b8a6;
+  --state-selected-text: #115e59;
+
+  --font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg-main);
+  background-image: radial-gradient(rgba(16, 185, 129, 0.08) 1px, transparent 1px);
+  background-size: 20px 20px;
+  color: var(--text-main);
+  font-family: var(--font-family);
+  min-height: 100vh;
+  line-height: 1.5;
+  overflow-x: hidden;
+}
+
+/* --- Layout Containers --- */
+.app-header {
+  background: rgba(255, 255, 255, 0.95);
+  border-bottom: 1px solid var(--border-color);
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 2px 10px rgba(16, 185, 129, 0.05);
+}
+
+.brand-title h1 {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #065f46;
+  letter-spacing: -0.01em;
+}
+
+.brand-title p {
+  font-size: 0.85rem;
+  color: #059669;
+  font-weight: 500;
+}
+
+.algo-select-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.algo-select-wrapper label {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #065f46;
+}
+
+.styled-select {
+  background-color: #ffffff;
+  color: #065f46;
+  border: 1.5px solid #a7f3d0;
+  padding: 0.55rem 1.1rem;
+  border-radius: 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 4px rgba(16, 185, 129, 0.08);
+}
+
+.styled-select:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+}
+
+.main-content {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* --- Custom Input Array Section --- */
+.tester-input-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 0.85rem;
+  padding: 1.25rem;
+  box-shadow: 0 4px 20px rgba(16, 185, 129, 0.06), 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.section-header h2 {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #065f46;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.input-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.styled-input {
+  flex: 1;
+  min-width: 280px;
+  background-color: var(--bg-input);
+  border: 1.5px solid #cbd5e1;
+  color: var(--text-main);
+  padding: 0.65rem 1rem;
+  border-radius: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  font-weight: 600;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.styled-input:focus {
+  background-color: #ffffff;
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  color: #ffffff;
+  border: none;
+  padding: 0.65rem 1.25rem;
+  border-radius: 0.5rem;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  box-shadow: 0 2px 8px rgba(5, 150, 105, 0.25);
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.35);
+}
+
+.presets-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.preset-label {
+  font-size: 0.8rem;
+  color: #475569;
+  font-weight: 700;
+}
+
+.btn-preset {
+  background-color: #f0fdf4;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+  padding: 0.35rem 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-preset:hover {
+  color: #ffffff;
+  border-color: #059669;
+  background-color: #059669;
+  transform: translateY(-1px);
+}
+
+.error-alert {
+  margin-top: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 0.375rem;
+  color: #991b1b;
+  font-size: 0.85rem;
+  font-weight: 600;
+  display: none;
+}
+
+/* --- Control Toolbar --- */
+.controls-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 0.85rem;
+  padding: 1rem 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  box-shadow: 0 4px 20px rgba(16, 185, 129, 0.06);
+}
+
+.playback-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-control {
+  background-color: #f8fafc;
+  border: 1.5px solid #cbd5e1;
+  color: #1e293b;
+  padding: 0.55rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all 0.2s ease;
+}
+
+.btn-control:hover {
+  background-color: #f0fdf4;
+  border-color: #10b981;
+  color: #065f46;
+}
+
+.btn-play {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  border: none;
+  min-width: 100px;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.btn-play:hover {
+  background: linear-gradient(135deg, #34d399 0%, #059669 100%);
+  color: #ffffff;
+}
+
+.btn-play.btn-playing {
+  background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+}
+
+.btn-reset {
+  color: #dc2626;
+  border-color: #fca5a5;
+  background-color: #fef2f2;
+}
+
+.btn-reset:hover {
+  border-color: #dc2626;
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.scrubber-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+  min-width: 250px;
+}
+
+.timeline-slider {
+  flex: 1;
+  accent-color: #059669;
+  cursor: pointer;
+}
+
+.step-counter {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #065f46;
+  white-space: nowrap;
+}
+
+.settings-group {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.slider-field {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.slider-field label {
+  font-size: 0.8rem;
+  color: #475569;
+  font-weight: 700;
+}
+
+.speed-slider {
+  width: 100px;
+  accent-color: #10b981;
+  cursor: pointer;
+}
+
+.speed-label {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #065f46;
+  min-width: 100px;
+}
+
+.toggle-field {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #065f46;
+  cursor: pointer;
+}
+
+.toggle-field input {
+  accent-color: #059669;
+  cursor: pointer;
+}
+
+/* --- Live Explanation Card --- */
+.explanation-card {
+  background: linear-gradient(90deg, #ecfdf5 0%, #f0fdf4 100%);
+  border-left: 4px solid #10b981;
+  border-right: 1px solid var(--border-color);
+  border-top: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  padding: 0.85rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.08);
+}
+
+.explanation-icon {
+  font-size: 1.25rem;
+}
+
+.explanation-text {
+  font-size: 0.95rem;
+  color: #064e3b;
+  font-weight: 600;
+}
+
+/* --- Visualizer Stage --- */
+.stage-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 0.85rem;
+  padding: 1.5rem;
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1.5rem;
+  position: relative;
+  box-shadow: 0 4px 20px rgba(16, 185, 129, 0.06);
+}
+
+.stage-title {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #059669;
+  font-weight: 800;
+}
+
+.array-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 12px;
+  padding: 1rem 0.5rem;
+  min-height: 140px;
+}
+
+.num-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pointer-badges-container {
+  min-height: 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  margin-bottom: 6px;
+}
+
+.pointer-badge {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 4px;
+  color: #ffffff;
+  white-space: nowrap;
+  animation: bounceIn 0.3s ease-out;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+@keyframes bounceIn {
+  0% { transform: translateY(-8px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+.badge-blue { background: #0284c7; }
+.badge-amber { background: #d97706; }
+.badge-rose { background: #e11d48; }
+.badge-purple { background: #7c3aed; }
+.badge-emerald { background: #059669; }
+.badge-cyan { background: #0891b2; }
+
+/* The Number Card Tile */
+.card-value {
+  width: 58px;
+  height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 1.3rem;
+  font-weight: 800;
+  border: 2px solid var(--state-default-border);
+  background-color: var(--state-default-bg);
+  color: var(--state-default-text);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.06);
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.card-index {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: #64748b;
+  margin-top: 6px;
+  font-weight: 700;
+}
+
+/* Card States */
+.state-default .card-value {
+  background-color: var(--state-default-bg);
+  border-color: var(--state-default-border);
+  color: var(--state-default-text);
+}
+
+.state-comparing .card-value {
+  background-color: var(--state-comparing-bg);
+  border-color: var(--state-comparing-border);
+  color: var(--state-comparing-text);
+  transform: translateY(-6px) scale(1.08);
+  box-shadow: 0 6px 16px rgba(245, 158, 11, 0.35);
+}
+
+.state-swapping .card-value {
+  background-color: var(--state-swapping-bg);
+  border-color: var(--state-swapping-border);
+  color: var(--state-swapping-text);
+  transform: translateY(-8px) scale(1.12);
+  box-shadow: 0 8px 20px rgba(244, 63, 94, 0.4);
+}
+
+.state-pivot .card-value {
+  background-color: var(--state-pivot-bg);
+  border-color: var(--state-pivot-border);
+  color: var(--state-pivot-text);
+  transform: translateY(-4px) scale(1.05);
+  box-shadow: 0 4px 14px rgba(168, 85, 247, 0.35);
+}
+
+.state-sorted .card-value {
+  background-color: var(--state-sorted-bg);
+  border-color: var(--state-sorted-border);
+  color: var(--state-sorted-text);
+  box-shadow: 0 3px 12px rgba(16, 185, 129, 0.35);
+}
+
+.state-selected .card-value {
+  background-color: var(--state-selected-bg);
+  border-color: var(--state-selected-border);
+  color: var(--state-selected-text);
+  transform: translateY(-4px);
+}
+
+.state-dimmed {
+  opacity: 0.35;
+}
+
+/* Auxiliary Array Section */
+.aux-array-section {
+  border-top: 1px dashed #cbd5e1;
+  padding-top: 1rem;
+  margin-top: 0.5rem;
+  display: none;
+}
+
+.aux-title {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #059669;
+  font-weight: 800;
+  margin-bottom: 0.5rem;
+}
+
+.aux-card .card-value {
+  width: 48px;
+  height: 48px;
+  font-size: 1.1rem;
+  background-color: #f0fdf4;
+  border-color: #10b981;
+  color: #065f46;
+}
+
+/* Legend */
+.stage-legend {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--border-color);
+  padding-top: 1rem;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  color: #334155;
+  font-weight: 600;
+}
+
+.legend-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+}
+
+.dot-default { background-color: #ffffff; border: 1.5px solid #cbd5e1; }
+.dot-comparing { background-color: var(--state-comparing-bg); border: 1.5px solid var(--state-comparing-border); }
+.dot-swapping { background-color: var(--state-swapping-bg); border: 1.5px solid var(--state-swapping-border); }
+.dot-pivot { background-color: var(--state-pivot-bg); border: 1.5px solid var(--state-pivot-border); }
+.dot-sorted { background-color: var(--state-sorted-bg); border: 1.5px solid var(--state-sorted-border); }
+
+/* --- Metrics & Analysis Section (2 Column Grid) --- */
+.analysis-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+@media (max-width: 900px) {
+  .analysis-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.analysis-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 0.85rem;
+  padding: 1.25rem;
+  box-shadow: 0 4px 20px rgba(16, 185, 129, 0.06);
+}
+
+/* Live Metrics Grid */
+.metrics-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.metric-box {
+  background: #f0fdf4;
+  border: 1px solid #a7f3d0;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  text-align: center;
+}
+
+.metric-label {
+  font-size: 0.75rem;
+  color: #065f46;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.metric-value {
+  font-family: var(--font-mono);
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #047857;
+  margin-top: 0.2rem;
+}
+
+/* Complexity Table */
+.complexity-table-wrapper {
+  margin-top: 0.75rem;
+}
+
+.complexity-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.complexity-table th,
+.complexity-table td {
+  padding: 0.55rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.complexity-table th {
+  color: #065f46;
+  font-weight: 700;
+  background-color: #f0fdf4;
+}
+
+.complexity-table td {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.badge-tag {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  border-radius: 0.25rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.badge-green { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
+.badge-blue { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+.badge-purple { background: #f3e8ff; color: #6b21a8; border: 1px solid #e9d5ff; }
+
+/* Analysis Bullet points */
+.daa-analysis-box {
+  background: #f8fafc;
+  border-radius: 0.5rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid #e2e8f0;
+}
+
+.daa-analysis-box h4 {
+  font-size: 0.85rem;
+  color: #065f46;
+  margin-bottom: 0.5rem;
+  font-weight: 800;
+}
+
+.daa-analysis-box ul {
+  padding-left: 1.25rem;
+  font-size: 0.84rem;
+  color: #334155;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+/* Pseudocode Panel */
+.pseudocode-container {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  max-height: 380px;
+  overflow-y: auto;
+}
+
+.pseudo-line {
+  display: flex;
+  gap: 1rem;
+  padding: 0.3rem 0.5rem;
+  border-radius: 0.25rem;
+  transition: all 0.15s ease;
+  line-height: 1.4;
+}
+
+.pseudo-num {
+  color: #94a3b8;
+  width: 24px;
+  text-align: right;
+  user-select: none;
+  font-weight: 600;
+}
+
+.pseudo-code {
+  color: #1e293b;
+  white-space: pre-wrap;
+  font-weight: 500;
+}
+
+.pseudo-line.active-line {
+  background-color: #d1fae5;
+  border-left: 3px solid #10b981;
+}
+
+.pseudo-line.active-line .pseudo-num {
+  color: #065f46;
+  font-weight: 800;
+}
+
+.pseudo-line.active-line .pseudo-code {
+  color: #064e3b;
+  font-weight: 800;
+}
+
+/* ==========================================================================
+   Real-Life Applications, Uses & Drawbacks Styles (White & Green)
+   ========================================================================== */
+.real-life-section {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 0.85rem;
+  padding: 1.5rem;
+  box-shadow: 0 4px 20px rgba(16, 185, 129, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.real-life-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 1.5rem;
+}
+
+@media (max-width: 960px) {
+  .real-life-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.real-life-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.analogy-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.analogy-badge {
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 800;
+  padding: 0.2rem 0.6rem;
+  border-radius: 0.25rem;
+  width: fit-content;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.analogy-header h3 {
+  font-size: 1.15rem;
+  color: #065f46;
+  font-weight: 800;
+}
+
+.analogy-story-text {
+  background: #f0fdf4;
+  border-left: 3px solid #10b981;
+  border-top: 1px solid #d1fae5;
+  border-bottom: 1px solid #d1fae5;
+  border-right: 1px solid #d1fae5;
+  padding: 0.85rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.92rem;
+  color: #064e3b;
+  line-height: 1.5;
+  font-weight: 500;
+}
+
+.practical-uses-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  padding: 1rem;
+}
+
+.practical-uses-box h4 {
+  font-size: 0.88rem;
+  color: #059669;
+  margin-bottom: 0.5rem;
+  font-weight: 800;
+}
+
+.uses-bullets {
+  padding-left: 1.25rem;
+  font-size: 0.85rem;
+  color: #334155;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-weight: 500;
+}
+
+/* Pros vs Cons */
+.pros-cons-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  height: 100%;
+}
+
+@media (max-width: 600px) {
+  .pros-cons-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pros-box, .cons-box {
+  border-radius: 0.5rem;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.pros-box {
+  background: #f0fdf4;
+  border: 1px solid #a7f3d0;
+  border-top: 3px solid #10b981;
+}
+
+.cons-box {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-top: 3px solid #ef4444;
+}
+
+.pros-header, .cons-header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.pros-header h4 {
+  font-size: 0.88rem;
+  color: #065f46;
+  font-weight: 800;
+}
+
+.cons-header h4 {
+  font-size: 0.88rem;
+  color: #991b1b;
+  font-weight: 800;
+}
+
+.pros-list, .cons-list {
+  list-style: none;
+  font-size: 0.82rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.pros-list li {
+  color: #064e3b;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  line-height: 1.4;
+  font-weight: 600;
+}
+
+.cons-list li {
+  color: #7f1d1d;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  line-height: 1.4;
+  font-weight: 600;
+}
+
+.icon-check {
+  color: #059669;
+  font-weight: 800;
+}
+
+.icon-cross {
+  color: #dc2626;
+  font-weight: 800;
+}
+
+/* ==========================================================================
+   Chatbot Widget Styles (White & Green Theme)
+   ========================================================================== */
+.chatbot-launcher {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 9999px;
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.95rem;
+  font-weight: 800;
+  font-family: var(--font-family);
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.35), 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  outline: none;
+}
+
+.chatbot-launcher:hover {
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 12px 30px rgba(16, 185, 129, 0.45), 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.chatbot-launcher.active {
+  background: #ffffff;
+  border: 1.5px solid #10b981;
+  color: #065f46;
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.2);
+}
+
+.chatbot-launcher .bot-icon {
+  font-size: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.unread-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 14px;
+  height: 14px;
+  background-color: #ef4444;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  animation: pulseDot 2s infinite;
+}
+
+@keyframes pulseDot {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.3); opacity: 0.7; }
+}
+
+.chatbot-window {
+  position: fixed;
+  bottom: 84px;
+  right: 24px;
+  width: 390px;
+  max-width: calc(100vw - 32px);
+  height: 540px;
+  max-height: calc(100vh - 110px);
+  background: #ffffff;
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15), 0 0 20px rgba(16, 185, 129, 0.1);
+  display: flex;
+  flex-direction: column;
+  z-index: 9999;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(20px) scale(0.95);
+  pointer-events: none;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.chatbot-window.open {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.chatbot-header {
+  background: linear-gradient(90deg, #ecfdf5 0%, #d1fae5 100%);
+  border-bottom: 1px solid #a7f3d0;
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.chatbot-header-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.chatbot-avatar {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.chatbot-header-title h3 {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #064e3b;
+  line-height: 1.2;
+}
+
+.chatbot-status {
+  font-size: 0.72rem;
+  color: #059669;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.chatbot-status::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background-color: #10b981;
+  border-radius: 50%;
+}
+
+.chatbot-close-btn {
+  background: rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  color: #475569;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+}
+
+.chatbot-close-btn:hover {
+  background: #fee2e2;
+  border-color: #ef4444;
+  color: #991b1b;
+}
+
+.chatbot-messages {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #f8fafc;
+}
+
+.chatbot-messages::-webkit-scrollbar { width: 6px; }
+.chatbot-messages::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+
+.chat-msg {
+  max-width: 85%;
+  padding: 10px 14px;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  word-break: break-word;
+  animation: fadeInMsg 0.25s ease-out;
+}
+
+@keyframes fadeInMsg {
+  0% { opacity: 0; transform: translateY(6px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.msg-user {
+  align-self: flex-end;
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  color: #ffffff;
+  border-radius: 14px 14px 2px 14px;
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.2);
+  font-weight: 600;
+}
+
+.msg-bot {
+  align-self: flex-start;
+  background: #ffffff;
+  color: #1e293b;
+  border: 1px solid #cbd5e1;
+  border-radius: 14px 14px 14px 2px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.msg-bot strong { color: #065f46; font-weight: 800; }
+.msg-bot code {
+  background: #f0fdf4;
+  color: #065f46;
+  padding: 2px 5px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 700;
+  border: 1px solid #a7f3d0;
+}
+
+.typing-indicator-msg {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 16px;
+}
+
+.typing-indicator-msg .dot {
+  width: 6px;
+  height: 6px;
+  background-color: #10b981;
+  border-radius: 50%;
+  animation: bounceDot 1.4s infinite ease-in-out;
+}
+
+.typing-indicator-msg .dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-indicator-msg .dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes bounceDot {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+  40% { transform: scale(1.1); opacity: 1; }
+}
+
+.chatbot-suggestions {
+  display: flex;
+  gap: 6px;
+  padding: 8px 14px;
+  background: #ffffff;
+  border-top: 1px solid var(--border-color);
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.chatbot-suggestions::-webkit-scrollbar { height: 4px; }
+.chatbot-suggestions::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+
+.suggestion-chip {
+  background: #f0fdf4;
+  border: 1px solid #a7f3d0;
+  color: #065f46;
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.suggestion-chip:hover {
+  background: #059669;
+  border-color: #059669;
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.chatbot-input-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: #ffffff;
+  border-top: 1px solid var(--border-color);
+}
+
+.chatbot-input {
+  flex: 1;
+  background: #f8fafc;
+  border: 1.5px solid #cbd5e1;
+  color: #0f172a;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  outline: none;
+  transition: all 0.2s ease;
+  font-family: var(--font-family);
+}
+
+.chatbot-input:focus {
+  background: #ffffff;
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+
+.chatbot-send-btn {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
+}
+
+.chatbot-send-btn:hover {
+  background: linear-gradient(135deg, #34d399 0%, #059669 100%);
+  transform: translateY(-1px);
+}
+
+.toast-banner {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  padding: 0.75rem 1.25rem;
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.3s ease;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+.toast-banner.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.toast-success { background-color: #d1fae5; color: #065f46; border: 1px solid #10b981; }
+.toast-error { background-color: #fee2e2; color: #991b1b; border: 1px solid #ef4444; }
+.toast-info { background-color: #e0f2fe; color: #0369a1; border: 1px solid #38bdf8; }
+
+</style>
+</head>
+<body>
+
+  <!-- App Header -->
+  <header class="app-header">
+    <div class="brand-title">
+      <div>
+        <h1>Interactive Sorting Visualizer</h1>
+        <p>Step-by-step algorithm animation, real-life examples & complexity analysis</p>
+      </div>
+    </div>
+
+    <div class="algo-select-wrapper">
+      <label for="algorithm-select">Select Algorithm:</label>
+      <select id="algorithm-select" class="styled-select">
+        <option value="bubble">1. Bubble Sort (Incremental)</option>
+        <option value="selection">2. Selection Sort (In-Place)</option>
+        <option value="insertion">3. Insertion Sort (Adaptive)</option>
+        <option value="merge">4. Merge Sort (Divide & Conquer)</option>
+        <option value="quick">5. Quick Sort (Partitioning)</option>
+        <option value="heap">6. Heap Sort (Max-Heapify)</option>
+      </select>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="main-content">
+
+    <!-- 1. Custom Array Input Card -->
+    <section class="tester-input-card">
+      <div class="section-header">
+        <h2>
+          <span>📥 Custom Array Input</span>
+        </h2>
+        <span class="preset-label">Format: Comma or Space-separated integers (e.g. 64, 34, 25, 12, 22, 11, 90)</span>
+      </div>
+
+      <div class="input-row">
+        <input 
+          type="text" 
+          id="custom-array-input" 
+          class="styled-input" 
+          placeholder="Enter numbers e.g. 45, 12, 85, 32, 89, 39, 69, 44, 1"
+          spellcheck="false"
+        />
+        <button id="load-array-btn" class="btn-primary">
+          <span>Apply Array</span>
+        </button>
+      </div>
+
+      <!-- Presets for fast test cases -->
+      <div class="presets-container">
+        <span class="preset-label">Quick Presets:</span>
+        <button id="preset-random" class="btn-preset">🎲 Random</button>
+        <button id="preset-sorted" class="btn-preset">📈 Sorted</button>
+        <button id="preset-reverse" class="btn-preset">📉 Reverse Sorted</button>
+        <button id="preset-nearly" class="btn-preset">⚡ Nearly Sorted</button>
+        <button id="preset-duplicates" class="btn-preset">♊ Duplicates</button>
+      </div>
+
+      <div id="input-error-msg" class="error-alert"></div>
+    </section>
+
+    <!-- 2. Interactive Control Toolbar -->
+    <section class="controls-card">
+      <div class="playback-group">
+        <button id="play-pause-btn" class="btn-control btn-play">
+          <span id="play-pause-icon">▶</span>
+          <span id="play-pause-text">Play</span>
+        </button>
+        <button id="step-back-btn" class="btn-control" title="Step Backward (Previous Frame)">
+          <span>⏮ Step Back</span>
+        </button>
+        <button id="step-forward-btn" class="btn-control" title="Step Forward (Next Frame)">
+          <span>Step Next ⏭</span>
+        </button>
+        <button id="reset-btn" class="btn-control btn-reset" title="Reset array to initial state">
+          <span>↺ Reset</span>
+        </button>
+      </div>
+
+      <div class="scrubber-group">
+        <input type="range" id="timeline-slider" class="timeline-slider" min="0" max="0" value="0" />
+        <span id="step-counter-text" class="step-counter">Step 1 of 1</span>
+      </div>
+
+      <div class="settings-group">
+        <div class="slider-field">
+          <label for="speed-slider">Speed:</label>
+          <input type="range" id="speed-slider" class="speed-slider" min="1" max="5" value="3" />
+          <span id="speed-label" class="speed-label">1.0x (Normal)</span>
+        </div>
+
+        <label class="toggle-field">
+          <input type="checkbox" id="sound-toggle" />
+          <span>🔊 Sound</span>
+        </label>
+      </div>
+    </section>
+
+    <!-- 3. Live Step-by-Step Explanation Banner -->
+    <section class="explanation-card">
+      <span class="explanation-icon">💡</span>
+      <div id="step-explanation-text" class="explanation-text">
+        Ready to visualize. Click "Play" or use "Step Next" to trace the algorithm step-by-step.
+      </div>
+    </section>
+
+    <!-- 4. Visualizer Stage (Number Cards & Pointers) -->
+    <section class="stage-card">
+      <div class="stage-title">Array Elements & Active Pointers</div>
+      
+      <!-- Main Array Container -->
+      <div id="main-array-container" class="array-container">
+        <!-- Rendered dynamically by visualizer.js -->
+      </div>
+
+      <!-- Auxiliary Array Container (for Merge Sort) -->
+      <div id="aux-array-section" class="aux-array-section">
+        <div class="aux-title">Auxiliary Buffer / Working Array</div>
+        <div id="aux-array-container" class="array-container">
+          <!-- Rendered dynamically during Merge Sort -->
+        </div>
+      </div>
+
+      <!-- Stage Legend -->
+      <div class="stage-legend">
+        <div class="legend-item"><span class="legend-dot dot-default"></span> Unsorted</div>
+        <div class="legend-item"><span class="legend-dot dot-comparing"></span> Comparing (?)</div>
+        <div class="legend-item"><span class="legend-dot dot-swapping"></span> Swapping / Writing</div>
+        <div class="legend-item"><span class="legend-dot dot-pivot"></span> Pivot / Key</div>
+        <div class="legend-item"><span class="legend-dot dot-sorted"></span> Sorted / In-Place (✓)</div>
+      </div>
+    </section>
+
+    <!-- 5. Metrics & Pseudocode Analysis Grid -->
+    <section class="analysis-grid">
+      
+      <!-- Left Column: Live Counters & Theoretical Complexity -->
+      <div class="analysis-card">
+        <div class="section-header">
+          <h2>📊 Complexity & Operation Metrics</h2>
+          <span id="algo-category-badge" class="badge-tag badge-blue">Category</span>
+        </div>
+
+        <!-- Live Operations Metrics -->
+        <div class="metrics-row">
+          <div class="metric-box">
+            <div class="metric-label">Comparisons (C)</div>
+            <div id="metric-comparisons" class="metric-value">0</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-label">Swaps / Writes (S)</div>
+            <div id="metric-swaps" class="metric-value">0</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-label">Array Accesses</div>
+            <div id="metric-accesses" class="metric-value">0</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-label">Elapsed Time</div>
+            <div id="metric-time" class="metric-value">0 ms</div>
+          </div>
+        </div>
+
+        <!-- Theoretical Big-O Table -->
+        <div class="complexity-table-wrapper">
+          <table class="complexity-table">
+            <thead>
+              <tr>
+                <th>Best Time</th>
+                <th>Avg Time</th>
+                <th>Worst Time</th>
+                <th>Aux Space</th>
+                <th>In-Place</th>
+                <th>Stable</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span id="time-best-val" class="badge-tag badge-green">O(n)</span></td>
+                <td><span id="time-avg-val" class="badge-tag badge-purple">O(n²)</span></td>
+                <td><span id="time-worst-val" class="badge-tag badge-purple">O(n²)</span></td>
+                <td><span id="space-worst-val" class="badge-tag badge-blue">O(1)</span></td>
+                <td id="inplace-val">Yes</td>
+                <td id="stable-val">Yes</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Recurrence & Analysis Points -->
+        <div class="daa-analysis-box">
+          <h4>Recurrence Relation: <span id="recurrence-val" style="color: #93c5fd; font-family: monospace;">T(n) = T(n-1) + O(n)</span></h4>
+          <ul id="daa-analysis-list">
+            <!-- Populated dynamically -->
+          </ul>
+        </div>
+      </div>
+
+      <!-- Right Column: Synchronized Pseudocode & Line Tracker -->
+      <div class="analysis-card">
+        <div class="section-header">
+          <h2 id="algo-name-title">Algorithm Pseudocode</h2>
+          <span class="badge-tag badge-purple">Live Line Tracer</span>
+        </div>
+        <p id="algo-description" style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.75rem;"></p>
+
+        <!-- Pseudocode container -->
+        <div id="pseudocode-lines-container" class="pseudocode-container">
+          <!-- Lines rendered dynamically -->
+        </div>
+      </div>
+
+    </section>
+
+    <!-- 6. Real-Life Applications, Uses & Drawbacks Section -->
+    <section class="real-life-section">
+      <div class="section-header">
+        <h2>
+          <span>🌍 Real-Life Examples, Applications & Limitations</span>
+        </h2>
+        <span class="badge-tag badge-blue">Practical Engineering Guide</span>
+      </div>
+
+      <div class="real-life-grid">
+        
+        <!-- Left Column: Real-Life Analogy & Practical Uses -->
+        <div class="real-life-card">
+          <div class="analogy-header">
+            <span class="analogy-badge">Intuitive Real-Life Analogy</span>
+            <h3 id="real-life-analogy-title">🫧 Carbonated Bubbles / School Height Line</h3>
+          </div>
+          <p id="real-life-story" class="analogy-story-text">
+            Imagine a line of students standing in random order...
+          </p>
+
+          <div class="practical-uses-box">
+            <h4>💼 Where It Is Used in Industry & Systems:</h4>
+            <ul id="practical-uses-list" class="uses-bullets">
+              <!-- Populated dynamically -->
+            </ul>
+          </div>
+        </div>
+
+        <!-- Right Column: Advantages vs Drawbacks -->
+        <div class="real-life-card">
+          <div class="pros-cons-grid">
+            
+            <!-- Advantages -->
+            <div class="pros-box">
+              <div class="pros-header">
+                <span class="pros-icon">✅</span>
+                <h4>Key Advantages</h4>
+              </div>
+              <ul id="advantages-list" class="pros-list">
+                <!-- Populated dynamically -->
+              </ul>
+            </div>
+
+            <!-- Drawbacks -->
+            <div class="cons-box">
+              <div class="cons-header">
+                <span class="cons-icon">⚠️</span>
+                <h4>Drawbacks & Limitations</h4>
+              </div>
+              <ul id="drawbacks-list" class="cons-list">
+                <!-- Populated dynamically -->
+              </ul>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Interactive Chatbot & Doubt-Solver Widget -->
+  <button id="chatbot-launcher-btn" class="chatbot-launcher" title="Need help? Ask your algorithm doubts!">
+    <span class="bot-icon">💬</span>
+    <span>Ask Doubts</span>
+    <span id="chatbot-unread-badge" class="unread-badge"></span>
+  </button>
+
+  <div id="chatbot-window" class="chatbot-window">
+    <div class="chatbot-header">
+      <div class="chatbot-header-info">
+        <div class="chatbot-avatar">🤖</div>
+        <div class="chatbot-header-title">
+          <h3>Algorithm Assistant</h3>
+          <span class="chatbot-status">Online • Ready to help</span>
+        </div>
+      </div>
+      <button id="chatbot-close-btn" class="chatbot-close-btn" title="Close chat">✕</button>
+    </div>
+
+    <div id="chatbot-messages" class="chatbot-messages">
+      <!-- Messages rendered dynamically -->
+    </div>
+
+    <div id="chatbot-suggestions" class="chatbot-suggestions">
+      <!-- Dynamic doubt chips rendered here -->
+    </div>
+
+    <div class="chatbot-input-bar">
+      <input 
+        type="text" 
+        id="chatbot-input" 
+        class="chatbot-input" 
+        placeholder="Type your doubt (e.g. Why is Quick Sort faster?)..." 
+        autocomplete="off"
+      />
+      <button id="chatbot-send-btn" class="chatbot-send-btn" title="Send message">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"></line>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Toast Notification element -->
+  <div id="toast-banner" class="toast-banner"></div>
+
+  <!-- Scripts in dependency order -->
+  <script>
+/* === complexityData.js === */
+const COMPLEXITY_DATA = {
+  bubble: {
+    name: "Bubble Sort",
+    category: "Incremental / Comparison-Based",
+    timeBest: "O(n)",
+    timeAvg: "O(n²)",
+    timeWorst: "O(n²)",
+    spaceWorst: "O(1)",
+    inPlace: "Yes",
+    stable: "Yes",
+    recurrence: "T(n) = T(n - 1) + O(n)",
+    description: "Repeatedly steps through the list, compares adjacent elements, and swaps them if they are in the wrong order. With an early termination flag, it achieves O(n) best-case time for already sorted arrays.",
+    realLifeExample: {
+      analogy: "🫧 Carbonated Bubbles / School Height Line",
+      story: "Imagine a line of students standing in random order. The teacher walks from left to right, comparing adjacent students and swapping them if the left student is taller. By the time the teacher reaches the end, the tallest student has 'bubbled up' to the very back of the line.",
+      icon: "🫧"
+    },
+    practicalUses: [
+      "Detecting nearly-sorted datasets with a single misplaced element (O(n) pass).",
+      "Educational graphics and teaching fundamental algorithm mechanics.",
+      "Ultra-low-memory microcontrollers (IoT sensors) with extremely small arrays (N ≤ 10)."
+    ],
+    advantages: [
+      "Simple to implement and understand.",
+      "Operates strictly in-place (O(1) auxiliary space).",
+      "Stable sort: preserves relative order of duplicate elements.",
+      "Adaptive: runs in O(n) linear time when array is already sorted."
+    ],
+    drawbacks: [
+      "Inefficient O(n²) average and worst-case time complexity.",
+      "Excessive number of swap operations compared to other algorithms.",
+      "Impractical for real-world production datasets."
+    ],
+    daAnalysis: [
+      "Total Comparisons in Worst/Avg Case: n(n-1)/2 = O(n²)",
+      "Total Swaps in Worst Case (Reverse Sorted): n(n-1)/2 = O(n²)",
+      "Best Case Comparisons with flag: n - 1 = O(n)",
+      "Adaptive: Yes (when optimized with swapped flag)"
+    ]
+  },
+
+  selection: {
+    name: "Selection Sort",
+    category: "Selection / Comparison-Based",
+    timeBest: "O(n²)",
+    timeAvg: "O(n²)",
+    timeWorst: "O(n²)",
+    spaceWorst: "O(1)",
+    inPlace: "Yes",
+    stable: "No (Standard version)",
+    recurrence: "T(n) = T(n - 1) + O(n)",
+    description: "Divides the array into sorted and unsorted subarrays. Repeatedly finds the minimum element from the unsorted subarray and swaps it with the first unsorted element.",
+    realLifeExample: {
+      analogy: "✏️ Arranging Pencils / Handpicking Cards",
+      story: "Imagine a messy desk with pencils of different lengths. You scan the entire desk to find the single shortest pencil and place it at position 1. Then you scan the remaining pencils to find the next shortest and place it at position 2, repeating until all pencils are aligned.",
+      icon: "✏️"
+    },
+    practicalUses: [
+      "Flash Memory & EEPROM Write-Constrained Systems: Memory cells have limited write lifecycles. Selection Sort makes at most n - 1 swaps total, minimizing costly hardware writes.",
+      "Embedded hardware devices where memory writes are drastically more expensive than read cycles."
+    ],
+    advantages: [
+      "Minimal memory writes: makes at most n - 1 swaps across its entire execution.",
+      "In-place sorting requiring strictly O(1) auxiliary space.",
+      "Predictable runtime performance with zero dynamic memory allocation."
+    ],
+    drawbacks: [
+      "Always performs O(n²) comparisons even if the input array is already sorted.",
+      "Not adaptive: best, average, and worst-case are all O(n²).",
+      "Unstable: standard swap can alter the relative order of identical elements."
+    ],
+    daAnalysis: [
+      "Always makes exactly n(n-1)/2 comparisons regardless of initial array ordering.",
+      "Makes at most O(n) swaps (at most n-1 swaps), optimal when write operations are expensive.",
+      "Not adaptive: Best, Average, and Worst case time complexities are all O(n²)."
+    ]
+  },
+
+  insertion: {
+    name: "Insertion Sort",
+    category: "Incremental / Adaptive",
+    timeBest: "O(n)",
+    timeAvg: "O(n²)",
+    timeWorst: "O(n²)",
+    spaceWorst: "O(1)",
+    inPlace: "Yes",
+    stable: "Yes",
+    recurrence: "T(n) = T(n - 1) + O(n) (Worst Case)",
+    description: "Builds the sorted array one item at a time. It picks the next element (key) and shifts all larger elements in the sorted prefix to the right to insert the key in its correct position.",
+    realLifeExample: {
+      analogy: "🃏 Sorting a Hand of Playing Cards",
+      story: "When dealt playing cards one by one, you hold the sorted cards in your left hand. As you receive a new card in your right hand, you scan from right to left, shift the larger cards over, and insert the new card into its correct position.",
+      icon: "🃏"
+    },
+    practicalUses: [
+      "Hybrid Production Sorters: Used as the base-case sorting routine in Python's Timsort and C++'s std::sort (Introsort) for small partitions (N ≤ 16–32) where it beats QuickSort due to zero overhead.",
+      "Online Real-Time Streaming: Sorting data as it continuously arrives from a network stream.",
+      "Nearly-sorted database records."
+    ],
+    advantages: [
+      "Extremely fast and lightweight for small arrays (N ≤ 16).",
+      "Adaptive: runs in O(n) linear time on already-sorted or nearly-sorted datasets.",
+      "In-place (O(1) extra space) and strictly stable.",
+      "Online: can sort a list as it receives continuous streaming items."
+    ],
+    drawbacks: [
+      "O(n²) time on reverse-sorted or randomly ordered large arrays.",
+      "Requires shifting elements one by one, causing numerous memory writes on large inputs."
+    ],
+    daAnalysis: [
+      "Number of inversions directly determines runtime: Time = O(n + I) where I is inversion count.",
+      "Best Case: O(n) comparisons and 0 shifts when array is already sorted.",
+      "Worst Case (Reverse Sorted): n(n-1)/2 comparisons and shifts = O(n²).",
+      "Very efficient for small datasets (n ≤ 10 to 20)."
+    ]
+  },
+
+  merge: {
+    name: "Merge Sort",
+    category: "Divide and Conquer",
+    timeBest: "O(n log n)",
+    timeAvg: "O(n log n)",
+    timeWorst: "O(n log n)",
+    spaceWorst: "O(n) auxiliary",
+    inPlace: "No",
+    stable: "Yes",
+    recurrence: "T(n) = 2T(n/2) + O(n)",
+    description: "Divides the unsorted list into two approximately equal halves, recursively sorts both halves, and then merges the two sorted halves into a single sorted array using an auxiliary buffer.",
+    realLifeExample: {
+      analogy: "📑 Merging Two Stacks of Graded Exam Papers",
+      story: "Imagine two teaching assistants have each sorted their own half of 500 exam papers alphabetically. To combine them, the professor looks at the top paper of each stack, picks whichever paper comes first in the alphabet, and places it in the final box.",
+      icon: "📑"
+    },
+    practicalUses: [
+      "External Sorting (Big Data): Sorting multi-gigabyte files and database tables that cannot fit into RAM (e.g. SQLite, PostgreSQL external sort, Hadoop map-reduce).",
+      "Sorting Singly Linked Lists: Can be done in O(n log n) with O(1) auxiliary pointer updates without random array indexing.",
+      "E-Commerce Catalog Sorting (Amazon / Flipkart product filters)."
+    ],
+    advantages: [
+      "Guaranteed O(n log n) worst-case time complexity (no catastrophic O(n²) degradation).",
+      "Strictly Stable: maintains the original relative order of duplicate elements.",
+      "Highly parallelizable: independent subproblems can run on multi-core CPUs.",
+      "Optimal for sequential streaming data and disk-based storage."
+    ],
+    drawbacks: [
+      "Requires O(n) auxiliary memory buffer to merge subarrays.",
+      "Slightly slower than QuickSort in RAM due to memory allocation and copying overhead."
+    ],
+    daAnalysis: [
+      "Master Theorem: a = 2, b = 2, f(n) = O(n) ⇒ Case 2 applies: log_b(a) = log_2(2) = 1, so T(n) = Θ(n log n).",
+      "Consistent O(n log n) runtime across best, worst, and average cases.",
+      "Requires O(n) extra space for merging sub-arrays.",
+      "Highly suitable for external sorting on linked lists and large files."
+    ]
+  },
+
+  quick: {
+    name: "Quick Sort",
+    category: "Divide and Conquer / Partitioning",
+    timeBest: "O(n log n)",
+    timeAvg: "O(n log n)",
+    timeWorst: "O(n²)",
+    spaceWorst: "O(log n) call stack (Worst: O(n))",
+    inPlace: "Yes",
+    stable: "No",
+    recurrence: "Best/Avg: T(n) = 2T(n/2) + O(n) | Worst: T(n) = T(n - 1) + O(n)",
+    description: "Selects a 'pivot' element, partitions the array such that all elements smaller than pivot are on the left and larger on the right, then recursively applies the same logic to both partitions.",
+    realLifeExample: {
+      analogy: "🗂 Filing Office Documents by Letter (e.g. 'M')",
+      story: "You have a towering pile of unorganized employee files. You pick 'M' as a separator (pivot) and split the pile into two boxes: 'A to M' on your left, and 'N to Z' on your right. Then you repeat the same process inside each smaller box until every file is in order.",
+      icon: "🗂"
+    },
+    practicalUses: [
+      "Default General-Purpose Sorting in Language Runtimes: C standard library (qsort), C++ STL (std::sort - Introsort), V8 JavaScript engine (Array.prototype.sort).",
+      "Operating system memory allocators and high-throughput systems."
+    ],
+    advantages: [
+      "Fastest general-purpose sorting algorithm in practice for in-memory data.",
+      "Operates in-place: requires only O(log n) auxiliary stack space.",
+      "Excellent CPU cache locality: scans elements sequentially from left and right.",
+      "Low constant factors compared to HeapSort and MergeSort."
+    ],
+    drawbacks: [
+      "Unstable: swaps can change the relative order of equal keys.",
+      "Degrades to O(n²) worst-case time if poorly chosen pivot yields unbalanced partitions (e.g. sorted array with naive last-element pivot).",
+      "Worst-case recursion stack space can reach O(n)."
+    ],
+    daAnalysis: [
+      "Average Case: Partition divides array in balanced ratios ⇒ O(n log n).",
+      "Worst Case: When array is already sorted or reverse sorted (with last element as pivot), partition splits into sizes 0 and n-1 ⇒ T(n) = T(n-1) + O(n) = O(n²).",
+      "In-place sorting with very small cache footprint and low constant factors."
+    ]
+  },
+
+  heap: {
+    name: "Heap Sort",
+    category: "Tree-Based / Priority Queue",
+    timeBest: "O(n log n)",
+    timeAvg: "O(n log n)",
+    timeWorst: "O(n log n)",
+    spaceWorst: "O(1)",
+    inPlace: "Yes",
+    stable: "No",
+    recurrence: "T(n) = Build-Max-Heap(n) + Σ O(log i) = O(n) + O(n log n) = O(n log n)",
+    description: "Builds a Max-Heap from the input array in O(n) time. Repeatedly swaps the root (maximum element) with the last unsorted element, decreases heap size, and restores the Max-Heap property via heapify.",
+    realLifeExample: {
+      analogy: "🏥 Hospital Emergency Room Triage Queue",
+      story: "In an emergency room, arriving patients are organized by medical severity in a priority heap. The critical patient with the highest urgency is always at the top of the queue (root). As soon as the top patient is treated, the heap rebalances so the next most critical patient moves to the top.",
+      icon: "🏥"
+    },
+    practicalUses: [
+      "Linux Kernel CPU Scheduling: Completely Fair Scheduler (CFS) and priority task queues.",
+      "Embedded & Safety-Critical Real-Time Systems (avionics, automotive): Guarantees strictly O(n log n) time with zero risk of stack overflow (O(1) space).",
+      "Top-K element extraction and streaming order statistics."
+    ],
+    advantages: [
+      "Guaranteed O(n log n) worst-case time with strictly O(1) auxiliary memory.",
+      "No recursion stack overflow risk (non-recursive in-place heapify).",
+      "Optimal when you only need to extract the top-K maximum/minimum elements."
+    ],
+    drawbacks: [
+      "Unstable sorting algorithm.",
+      "Slower constant factor than QuickSort: jumping between parent and children indices (2i+1, 2i+2) causes frequent CPU L1/L2 cache misses."
+    ],
+    daAnalysis: [
+      "Building Max-Heap takes O(n) time (using Taylor series / aggregate analysis).",
+      "Extracting max takes O(log n) time per element for n elements ⇒ n * O(log n).",
+      "Guarantees O(n log n) worst-case time with strictly O(1) auxiliary space.",
+      "Not cache-friendly compared to QuickSort due to non-contiguous heap index jumps (2i+1, 2i+2)."
+    ]
+  }
+};
+
+/**
+ * Pseudocode definitions with line numbers for sorting algorithms
+ */
+
+
+/* === pseudocode.js === */
+const PSEUDOCODE_DATA = {
+  bubble: [
+    { line: 1, text: "procedure BubbleSort(A : list of sortable items)" },
+    { line: 2, text: "  n := length(A)" },
+    { line: 3, text: "  for i := 0 to n - 1 do" },
+    { line: 4, text: "    swapped := false" },
+    { line: 5, text: "    for j := 0 to n - i - 2 do" },
+    { line: 6, text: "      if A[j] > A[j + 1] then" },
+    { line: 7, text: "        swap(A[j], A[j + 1])" },
+    { line: 8, text: "        swapped := true" },
+    { line: 9, text: "    if not swapped then break  // early exit optimization" },
+    { line: 10, text: "  return A" }
+  ],
+  selection: [
+    { line: 1, text: "procedure SelectionSort(A : list of sortable items)" },
+    { line: 2, text: "  n := length(A)" },
+    { line: 3, text: "  for i := 0 to n - 2 do" },
+    { line: 4, text: "    min_idx := i" },
+    { line: 5, text: "    for j := i + 1 to n - 1 do" },
+    { line: 6, text: "      if A[j] < A[min_idx] then" },
+    { line: 7, text: "        min_idx := j  // update current minimum" },
+    { line: 8, text: "    if min_idx != i then" },
+    { line: 9, text: "      swap(A[i], A[min_idx])" },
+    { line: 10, text: "  return A" }
+  ],
+  insertion: [
+    { line: 1, text: "procedure InsertionSort(A : list of sortable items)" },
+    { line: 2, text: "  n := length(A)" },
+    { line: 3, text: "  for i := 1 to n - 1 do" },
+    { line: 4, text: "    key := A[i]" },
+    { line: 5, text: "    j := i - 1" },
+    { line: 6, text: "    while j >= 0 and A[j] > key do" },
+    { line: 7, text: "      A[j + 1] := A[j]  // shift element right" },
+    { line: 8, text: "      j := j - 1" },
+    { line: 9, text: "    A[j + 1] := key    // insert key into sorted prefix" },
+    { line: 10, text: "  return A" }
+  ],
+  merge: [
+    { line: 1, text: "procedure MergeSort(A, left, right)" },
+    { line: 2, text: "  if left < right then" },
+    { line: 3, text: "    mid := floor((left + right) / 2)" },
+    { line: 4, text: "    MergeSort(A, left, mid)        // sort left half" },
+    { line: 5, text: "    MergeSort(A, mid + 1, right)   // sort right half" },
+    { line: 6, text: "    Merge(A, left, mid, right)     // combine sorted halves" },
+    { line: 7, text: " " },
+    { line: 8, text: "procedure Merge(A, left, mid, right)" },
+    { line: 9, text: "  Copy subarrays to AuxL and AuxR" },
+    { line: 10, text: "  Merge AuxL and AuxR back into A[left...right]" }
+  ],
+  quick: [
+    { line: 1, text: "procedure QuickSort(A, low, high)" },
+    { line: 2, text: "  if low < high then" },
+    { line: 3, text: "    p := Partition(A, low, high)   // Lomuto partition" },
+    { line: 4, text: "    QuickSort(A, low, p - 1)       // sort left subarray" },
+    { line: 5, text: "    QuickSort(A, p + 1, high)      // sort right subarray" },
+    { line: 6, text: " " },
+    { line: 7, text: "procedure Partition(A, low, high)" },
+    { line: 8, text: "  pivot := A[high];  i := low - 1" },
+    { line: 9, text: "  for j := low to high - 1 do" },
+    { line: 10, text: "    if A[j] <= pivot then i := i + 1; swap(A[i], A[j])" },
+    { line: 11, text: "  swap(A[i + 1], A[high]); return i + 1" }
+  ],
+  heap: [
+    { line: 1, text: "procedure HeapSort(A)" },
+    { line: 2, text: "  BuildMaxHeap(A)                  // O(n) construction" },
+    { line: 3, text: "  for i := length(A) - 1 downto 1 do" },
+    { line: 4, text: "    swap(A[0], A[i])               // extract max to sorted suffix" },
+    { line: 5, text: "    MaxHeapify(A, 0, i)            // restore heap of size i" },
+    { line: 6, text: " " },
+    { line: 7, text: "procedure MaxHeapify(A, root, heapSize)" },
+    { line: 8, text: "  largest := root; l := 2*root + 1; r := 2*root + 2" },
+    { line: 9, text: "  if l < heapSize and A[l] > A[largest] then largest := l" },
+    { line: 10, text: "  if r < heapSize and A[r] > A[largest] then largest := r" },
+    { line: 11, text: "  if largest != root then swap(A[root], A[largest]); MaxHeapify(A, largest, heapSize)" }
+  ]
+};
+
+/**
+ * Bubble Sort Frame Generator
+ */
+
+
+/* === algorithms/bubbleSort.js === */
+function generateBubbleSortFrames(initialArray) {
+  const arr = [...initialArray];
+  const n = arr.length;
+  const frames = [];
+  let comparisons = 0;
+  let swaps = 0;
+  let accesses = 0;
+  const sortedIndices = [];
+
+  // Initial Frame
+  frames.push({
+    array: [...arr],
+    auxArray: null,
+    highlights: {},
+    pointers: [],
+    comparisons,
+    swaps,
+    accesses,
+    pseudocodeLine: 1,
+    explanation: `Starting Bubble Sort on array of ${n} elements.`,
+    sortedIndices: [...sortedIndices],
+    activeRange: [0, n - 1]
+  });
+
+  for (let i = 0; i < n; i++) {
+    let swapped = false;
+    frames.push({
+      array: [...arr],
+      auxArray: null,
+      highlights: {},
+      pointers: [{ index: 0, label: `Pass ${i + 1}`, color: "purple" }],
+      comparisons,
+      swaps,
+      accesses,
+      pseudocodeLine: 3,
+      explanation: `Outer Loop: Pass ${i + 1} of ${n}. Floating the largest unsorted element to index ${n - 1 - i}.`,
+      sortedIndices: [...sortedIndices],
+      activeRange: [0, n - 1 - i]
+    });
+
+    for (let j = 0; j < n - i - 1; j++) {
+      comparisons++;
+      accesses += 2;
+
+      // Comparing frame
+      const isGreater = arr[j] > arr[j + 1];
+      frames.push({
+        array: [...arr],
+        auxArray: null,
+        highlights: {
+          [j]: "comparing",
+          [j + 1]: "comparing"
+        },
+        pointers: [
+          { index: j, label: "j", color: "amber" },
+          { index: j + 1, label: "j+1", color: "cyan" }
+        ],
+        comparisons,
+        swaps,
+        accesses,
+        pseudocodeLine: 6,
+        explanation: `Comparing arr[${j}] (${arr[j]}) and arr[${j + 1}] (${arr[j + 1]}). ${isGreater ? `${arr[j]} > ${arr[j + 1]} → Needs Swap!` : `${arr[j]} ≤ ${arr[j + 1]} → In correct order.`}`,
+        sortedIndices: [...sortedIndices],
+        activeRange: [0, n - 1 - i]
+      });
+
+      if (isGreater) {
+        // Swap
+        swaps++;
+        accesses += 4;
+        const temp = arr[j];
+        arr[j] = arr[j + 1];
+        arr[j + 1] = temp;
+        swapped = true;
+
+        frames.push({
+          array: [...arr],
+          auxArray: null,
+          highlights: {
+            [j]: "swapping",
+            [j + 1]: "swapping"
+          },
+          pointers: [
+            { index: j, label: "j", color: "rose" },
+            { index: j + 1, label: "j+1", color: "rose" }
+          ],
+          comparisons,
+          swaps,
+          accesses,
+          pseudocodeLine: 7,
+          explanation: `Swapped arr[${j}] (${arr[j]}) with arr[${j + 1}] (${arr[j + 1]}).`,
+          sortedIndices: [...sortedIndices],
+          activeRange: [0, n - 1 - i]
+        });
+      }
+    }
+
+    // Element at n - 1 - i is now permanently in sorted position
+    sortedIndices.push(n - 1 - i);
+    frames.push({
+      array: [...arr],
+      auxArray: null,
+      highlights: {
+        [n - 1 - i]: "sorted"
+      },
+      pointers: [{ index: n - 1 - i, label: "Fixed", color: "emerald" }],
+      comparisons,
+      swaps,
+      accesses,
+      pseudocodeLine: 3,
+      explanation: `Element ${arr[n - 1 - i]} at index ${n - 1 - i} is now locked in its sorted position.`,
+      sortedIndices: [...sortedIndices],
+      activeRange: [0, n - 2 - i]
+    });
+
+    if (!swapped) {
+      // Early exit triggered
+      for (let k = 0; k < n; k++) {
+        if (!sortedIndices.includes(k)) sortedIndices.push(k);
+      }
+      frames.push({
+        array: [...arr],
+        auxArray: null,
+        highlights: {},
+        pointers: [],
+        comparisons,
+        swaps,
+        accesses,
+        pseudocodeLine: 9,
+        explanation: `Early Termination Optimization: No swaps occurred in pass ${i + 1}. The array is already completely sorted (Best Case O(n))!`,
+        sortedIndices: [...sortedIndices],
+        activeRange: null
+      });
+      break;
+    }
+  }
+
+  // Final sorted frame
+  for (let k = 0; k < n; k++) {
+    if (!sortedIndices.includes(k)) sortedIndices.push(k);
+  }
+  frames.push({
+    array: [...arr],
+    auxArray: null,
+    highlights: {},
+    pointers: [],
+    comparisons,
+    swaps,
+    accesses,
+    pseudocodeLine: 10,
+    explanation: `Bubble Sort Complete! Total comparisons: ${comparisons}, Total swaps: ${swaps}.`,
+    sortedIndices: [...sortedIndices],
+    activeRange: null
+  });
+
+  return frames;
+}
+
+/**
+ * Selection Sort Frame Generator
+ */
+
+
+/* === algorithms/selectionSort.js === */
+function generateSelectionSortFrames(initialArray) {
+  const arr = [...initialArray];
+  const n = arr.length;
+  const frames = [];
+  let comparisons = 0;
+  let swaps = 0;
+  let accesses = 0;
+  const sortedIndices = [];
+
+  frames.push({
+    array: [...arr],
+    auxArray: null,
+    highlights: {},
+    pointers: [],
+    comparisons,
+    swaps,
+    accesses,
+    pseudocodeLine: 1,
+    explanation: `Starting Selection Sort on array of ${n} elements.`,
+    sortedIndices: [...sortedIndices],
+    activeRange: [0, n - 1]
+  });
+
+  for (let i = 0; i < n - 1; i++) {
+    let minIdx = i;
+    accesses++;
+
+    frames.push({
+      array: [...arr],
+      auxArray: null,
+      highlights: { [minIdx]: "selected" },
+      pointers: [
+        { index: i, label: "i (target)", color: "purple" },
+        { index: minIdx, label: "min", color: "amber" }
+      ],
+      comparisons,
+      swaps,
+      accesses,
+      pseudocodeLine: 4,
+      explanation: `Pass ${i + 1}: Searching for minimum element in unsorted subarray [${i}...${n - 1}]. Initial min is arr[${i}] = ${arr[i]}.`,
+      sortedIndices: [...sortedIndices],
+      activeRange: [i, n - 1]
+    });
+
+    for (let j = i + 1; j < n; j++) {
+      comparisons++;
+      accesses += 2;
+      const isSmaller = arr[j] < arr[minIdx];
+
+      frames.push({
+        array: [...arr],
+        auxArray: null,
+        highlights: {
+          [minIdx]: "selected",
+          [j]: "comparing"
+        },
+        pointers: [
+          { index: i, label: "i", color: "purple" },
+          { index: minIdx, label: "min", color: "amber" },
+          { index: j, label: "j", color: "cyan" }
+        ],
+        comparisons,
+        swaps,
+        accesses,
+        pseudocodeLine: 6,
+        explanation: `Comparing arr[${j}] (${arr[j]}) with current minimum arr[${minIdx}] (${arr[minIdx]}). ${isSmaller ? `New minimum found: ${arr[j]} < ${arr[minIdx]}!` : `Not smaller than current minimum.`}`,
+        sortedIndices: [...sortedIndices],
+        activeRange: [i, n - 1]
+      });
+
+      if (isSmaller) {
+        minIdx = j;
+        frames.push({
+          array: [...arr],
+          auxArray: null,
+          highlights: { [minIdx]: "selected" },
+          pointers: [
+            { index: i, label: "i", color: "purple" },
+            { index: minIdx, label: "new min", color: "emerald" }
+          ],
+          comparisons,
+          swaps,
+          accesses,
+          pseudocodeLine: 7,
+          explanation: `Updated minimum index: min_idx = ${minIdx} (Value: ${arr[minIdx]}).`,
+          sortedIndices: [...sortedIndices],
+          activeRange: [i, n - 1]
+        });
+      }
+    }
+
+    if (minIdx !== i) {
+      swaps++;
+      accesses += 4;
+      const temp = arr[i];
+      arr[i] = arr[minIdx];
+      arr[minIdx] = temp;
+
+      frames.push({
+        array: [...arr],
+        auxArray: null,
+        highlights: {
+          [i]: "swapping",
+          [minIdx]: "swapping"
+        },
+        pointers: [
+          { index: i, label: "swapped min", color: "rose" },
+          { index: minIdx, label: "old pos", color: "rose" }
+        ],
+        comparisons,
+        swaps,
+        accesses,
+        pseudocodeLine: 9,
+        explanation: `Swapped minimum element ${arr[i]} into its sorted index ${i}.`,
+        sortedIndices: [...sortedIndices],
+        activeRange: [i, n - 1]
+      });
+    } else {
+      frames.push({
+        array: [...arr],
+        auxArray: null,
+        highlights: { [i]: "selected" },
+        pointers: [{ index: i, label: "already min", color: "emerald" }],
+        comparisons,
+        swaps,
+        accesses,
+        pseudocodeLine: 8,
+        explanation: `Minimum element is already at index ${i} (${arr[i]}). No swap required.`,
+        sortedIndices: [...sortedIndices],
+        activeRange: [i, n - 1]
+      });
+    }
+
+    sortedIndices.push(i);
+  }
+
+  // The last remaining element is automatically sorted
+  sortedIndices.push(n - 1);
+  frames.push({
+    array: [...arr],
+    auxArray: null,
+    highlights: {},
+    pointers: [],
+    comparisons,
+    swaps,
+    accesses,
+    pseudocodeLine: 10,
+    explanation: `Selection Sort Complete! Total comparisons: ${comparisons}, Total swaps: ${swaps}.`,
+    sortedIndices: [...sortedIndices],
+    activeRange: null
+  });
+
+  return frames;
+}
+
+/**
+ * Insertion Sort Frame Generator
+ */
+
+
+/* === algorithms/insertionSort.js === */
+function generateInsertionSortFrames(initialArray) {
+  const arr = [...initialArray];
+  const n = arr.length;
+  const frames = [];
+  let comparisons = 0;
+  let swaps = 0; // In insertion sort, treated as shifts / writes
+  let accesses = 0;
+  const sortedIndices = [0];
+
+  frames.push({
+    array: [...arr],
+    auxArray: null,
+    highlights: { 0: "sorted" },
+    pointers: [{ index: 0, label: "sorted prefix", color: "emerald" }],
+    comparisons,
+    swaps,
+    accesses: accesses + 1,
+    pseudocodeLine: 1,
+    explanation: `Starting Insertion Sort. Initial single-element subarray [0] (${arr[0]}) is already trivially sorted.`,
+    sortedIndices: [...sortedIndices],
+    activeRange: [0, 0]
+  });
+
+  for (let i = 1; i < n; i++) {
+    const key = arr[i];
+    accesses++;
+    let j = i - 1;
+
+    frames.push({
+      array: [...arr],
+      auxArray: null,
+      highlights: { [i]: "pivot" },
+      pointers: [{ index: i, label: `key = ${key}`, color: "purple" }],
+      comparisons,
+      swaps,
+      accesses,
+      pseudocodeLine: 4,
+      explanation: `Step ${i}: Selected key = ${key} at index ${i}. Finding its insertion position in sorted prefix [0...${i - 1}].`,
+      sortedIndices: [...sortedIndices],
+      activeRange: [0, i]
+    });
+
+    while (j >= 0) {
+      comparisons++;
+      accesses++;
+      const isGreater = arr[j] > key;
+
+      frames.push({
+        array: [...arr],
+        auxArray: null,
+        highlights: {
+          [j]: "comparing",
+          [j + 1]: "pivot"
+        },
+        pointers: [
+          { index: j, label: "j", color: "amber" },
+          { index: j + 1, label: "shift slot", color: "purple" }
+        ],
+        comparisons,
+        swaps,
+        accesses,
+        pseudocodeLine: 6,
+        explanation: `Comparing prefix element arr[${j}] (${arr[j]}) with key (${key}). ${isGreater ? `${arr[j]} > ${key} → Shift ${arr[j]} right!` : `${arr[j]} ≤ ${key} → Correct insertion spot found.`}`,
+        sortedIndices: [...sortedIndices],
+        activeRange: [0, i]
+      });
+
+      if (isGreater) {
+        swaps++; // Shift write
+        accesses += 2;
+        arr[j + 1] = arr[j];
+
+        frames.push({
+          array: [...arr],
+          auxArray: null,
+          highlights: {
+            [j + 1]: "swapping"
+          },
+          pointers: [
+            { index: j + 1, label: `shifted ${arr[j + 1]}`, color: "rose" }
+          ],
+          comparisons,
+          swaps,
+          accesses,
+          pseudocodeLine: 7,
+          explanation: `Shifted arr[${j}] (${arr[j + 1]}) right to index ${j + 1}.`,
+          sortedIndices: [...sortedIndices],
+          activeRange: [0, i]
+        });
+
+        j = j - 1;
+      } else {
+        break;
+      }
+    }
+
+    arr[j + 1] = key;
+    accesses++;
+    if (!sortedIndices.includes(i)) sortedIndices.push(i);
+
+    frames.push({
+      array: [...arr],
+      auxArray: null,
+      highlights: { [j + 1]: "sorted" },
+      pointers: [{ index: j + 1, label: `inserted ${key}`, color: "emerald" }],
+      comparisons,
+      swaps,
+      accesses,
+      pseudocodeLine: 9,
+      explanation: `Inserted key (${key}) into index ${j + 1}. Sorted prefix is now [0...${i}].`,
+      sortedIndices: [...sortedIndices],
+      activeRange: [0, i]
+    });
+  }
+
+  frames.push({
+    array: [...arr],
+    auxArray: null,
+    highlights: {},
+    pointers: [],
+    comparisons,
+    swaps,
+    accesses,
+    pseudocodeLine: 10,
+    explanation: `Insertion Sort Complete! Total comparisons: ${comparisons}, Total shifts/writes: ${swaps}.`,
+    sortedIndices: [...sortedIndices],
+    activeRange: null
+  });
+
+  return frames;
+}
+
+/**
+ * Merge Sort Frame Generator (Divide & Conquer with Auxiliary Array)
+ */
+
+
+/* === algorithms/mergeSort.js === */
+function generateMergeSortFrames(initialArray) {
+  const arr = [...initialArray];
+  const n = arr.length;
+  const frames = [];
+  let comparisons = 0;
+  let swaps = 0;
+  let accesses = 0;
+  const sortedIndices = [];
+
+  frames.push({
+    array: [...arr],
+    auxArray: null,
+    highlights: {},
+    pointers: [{ index: 0, label: "L=0", color: "blue" }, { index: n - 1, label: `R=${n - 1}`, color: "blue" }],
+    comparisons,
+    swaps,
+    accesses,
+    pseudocodeLine: 1,
+    explanation: `Starting Merge Sort (Divide & Conquer). Initial range: [0...${n - 1}].`,
+    sortedIndices: [...sortedIndices],
+    activeRange: [0, n - 1]
+  });
+
+  function mergeSortHelper(left, right) {
+    if (left >= right) return;
+
+    const mid = Math.floor((left + right) / 2);
+
+    frames.push({
+      array: [...arr],
+      auxArray: null,
+      highlights: {},
+      pointers: [
+        { index: left, label: "left", color: "blue" },
+        { index: mid, label: "mid", color: "purple" },
+        { index: right, label: "right", color: "blue" }
+      ],
+      comparisons,
+      swaps,
+      accesses,
+      pseudocodeLine: 3,
+      explanation: `Dividing subarray [${left}...${right}] at mid = ${mid}. Left half: [${left}...${mid}], Right half: [${mid + 1}...${right}].`,
+      sortedIndices: [...sortedIndices],
+      activeRange: [left, right]
+    });
+
+    mergeSortHelper(left, mid);
+    mergeSortHelper(mid + 1, right);
+    merge(left, mid, right);
+  }
+
+  function merge(left, mid, right) {
+    const leftLen = mid - left + 1;
+    const rightLen = right - mid;
+    const L = [];
+    const R = [];
+
+    for (let i = 0; i < leftLen; i++) {
+      L.push(arr[left + i]);
+      accesses++;
+    }
+    for (let j = 0; j < rightLen; j++) {
+      R.push(arr[mid + 1 + j]);
+      accesses++;
+    }
+
+    const auxBuffer = [...L, ...R];
+
+    frames.push({
+      array: [...arr],
+      auxArray: [...auxBuffer],
+      highlights: {},
+      pointers: [
+        { index: left, label: "L", color: "blue" },
+        { index: mid, label: "mid", color: "purple" },
+        { index: right, label: "R", color: "blue" }
+      ],
+      auxPointers: [
+        { index: 0, label: "Aux Left", color: "cyan" },
+        { index: leftLen, label: "Aux Right", color: "amber" }
+      ],
+      comparisons,
+      swaps,
+      accesses,
+      pseudocodeLine: 9,
+      explanation: `Copying subarrays to auxiliary buffer: Left = [${L.join(", ")}], Right = [${R.join(", ")}].`,
+      sortedIndices: [...sortedIndices],
+      activeRange: [left, right]
+    });
+
+    let i = 0;
+    let j = 0;
+    let k = left;
+
+    while (i < leftLen && j < rightLen) {
+      comparisons++;
+      accesses += 2;
+      const isLeftSmaller = L[i] <= R[j];
+
+      frames.push({
+        array: [...arr],
+        auxArray: [...auxBuffer],
+        highlights: { [k]: "comparing" },
+        pointers: [{ index: k, label: `k=${k}`, color: "purple" }],
+        auxPointers: [
+          { index: i, label: `L[${i}]`, color: "cyan" },
+          { index: leftLen + j, label: `R[${j}]`, color: "amber" }
+        ],
+        comparisons,
+        swaps,
+        accesses,
+        pseudocodeLine: 10,
+        explanation: `Comparing Aux Left L[${i}] (${L[i]}) and Aux Right R[${j}] (${R[j]}). ${isLeftSmaller ? `L[${i}] (${L[i]}) is smaller/equal → Place in arr[${k}].` : `R[${j}] (${R[j]}) is smaller → Place in arr[${k}].`}`,
+        sortedIndices: [...sortedIndices],
+        activeRange: [left, right]
+      });
+
+      if (isLeftSmaller) {
+        arr[k] = L[i];
+        accesses++;
+        swaps++;
+        i++;
+      } else {
+        arr[k] = R[j];
+        accesses++;
+        swaps++;
+        j++;
+      }
+
+      frames.push({
+        array: [...arr],
+        auxArray: [...auxBuffer],
+        highlights: { [k]: "swapping" },
+        pointers: [{ index: k, label: `merged ${arr[k]}`, color: "emerald" }],
+        auxPointers: [],
+        comparisons,
+        swaps,
+        accesses,
+        pseudocodeLine: 10,
+        explanation: `Merged value ${arr[k]} into position arr[${k}].`,
+        sortedIndices: [...sortedIndices],
+        activeRange: [left, right]
+      });
+
+      k++;
+    }
+
+    while (i < leftLen) {
+      arr[k] = L[i];
+      accesses += 2;
+      swaps++;
+
+      frames.push({
+        array: [...arr],
+        auxArray: [...auxBuffer],
+        highlights: { [k]: "swapping" },
+        pointers: [{ index: k, label: `copy L[${i}]`, color: "cyan" }],
+        auxPointers: [{ index: i, label: `L[${i}]`, color: "cyan" }],
+        comparisons,
+        swaps,
+        accesses,
+        pseudocodeLine: 10,
+        explanation: `Copying remaining element from Left Aux L[${i}] (${L[i]}) into arr[${k}].`,
+        sortedIndices: [...sortedIndices],
+        activeRange: [left, right]
+      });
+
+      i++;
+      k++;
+    }
+
+    while (j < rightLen) {
+      arr[k] = R[j];
+      accesses += 2;
+      swaps++;
+
+      frames.push({
+        array: [...arr],
+        auxArray: [...auxBuffer],
+        highlights: { [k]: "swapping" },
+        pointers: [{ index: k, label: `copy R[${j}]`, color: "amber" }],
+        auxPointers: [{ index: leftLen + j, label: `R[${j}]`, color: "amber" }],
+        comparisons,
+        swaps,
+        accesses,
+        pseudocodeLine: 10,
+        explanation: `Copying remaining element from Right Aux R[${j}] (${R[j]}) into arr[${k}].`,
+        sortedIndices: [...sortedIndices],
+        activeRange: [left, right]
+      });
+
+      j++;
+      k++;
+    }
+
+    if (left === 0 && right === n - 1) {
+      for (let idx = 0; idx < n; idx++) sortedIndices.push(idx);
+    }
+  }
+
+  mergeSortHelper(0, n - 1);
+
+  for (let idx = 0; idx < n; idx++) {
+    if (!sortedIndices.includes(idx)) sortedIndices.push(idx);
+  }
+
+  frames.push({
+    array: [...arr],
+    auxArray: null,
+    highlights: {},
+    pointers: [],
+    comparisons,
+    swaps,
+    accesses,
+    pseudocodeLine: 6,
+    explanation: `Merge Sort Complete! Time: O(n log n), Auxiliary Space: O(n). Total comparisons: ${comparisons}.`,
+    sortedIndices: [...sortedIndices],
+    activeRange: null
+  });
+
+  return frames;
+}
+
+/**
+ * Quick Sort Frame Generator (Lomuto Partition Scheme)
+ */
+
+
+/* === algorithms/quickSort.js === */
+function generateQuickSortFrames(initialArray) {
+  const arr = [...initialArray];
+  const n = arr.length;
+  const frames = [];
+  let comparisons = 0;
+  let swaps = 0;
+  let accesses = 0;
+  const sortedIndices = [];
+
+  frames.push({
+    array: [...arr],
+    auxArray: null,
+    highlights: {},
+    pointers: [{ index: 0, label: "low=0", color: "blue" }, { index: n - 1, label: `high=${n - 1}`, color: "blue" }],
+    comparisons,
+    swaps,
+    accesses,
+    pseudocodeLine: 1,
+    explanation: `Starting Quick Sort on array of ${n} elements.`,
+    sortedIndices: [...sortedIndices],
+    activeRange: [0, n - 1]
+  });
+
+  function quickSortHelper(low, high) {
+    if (low < high) {
+      const p = partition(low, high);
+      quickSortHelper(low, p - 1);
+      quickSortHelper(p + 1, high);
+    } else if (low === high) {
+      if (!sortedIndices.includes(low)) sortedIndices.push(low);
+    }
+  }
+
+  function partition(low, high) {
+    const pivot = arr[high];
+    accesses++;
+    let i = low - 1;
+
+    frames.push({
+      array: [...arr],
+      auxArray: null,
+      highlights: { [high]: "pivot" },
+      pointers: [
+        { index: high, label: `pivot = ${pivot}`, color: "purple" },
+        { index: low, label: "low", color: "blue" },
+        { index: high, label: "high", color: "blue" }
+      ],
+      comparisons,
+      swaps,
+      accesses,
+      pseudocodeLine: 8,
+      explanation: `Partitioning subarray [${low}...${high}]. Chosen pivot: arr[${high}] = ${pivot}. Partition boundary i starts at ${i}.`,
+      sortedIndices: [...sortedIndices],
+      activeRange: [low, high]
+    });
+
+    for (let j = low; j < high; j++) {
+      comparisons++;
+      accesses++;
+      const isSmallerOrEqual = arr[j] <= pivot;
+
+      frames.push({
+        array: [...arr],
+        auxArray: null,
+        highlights: {
+          [j]: "comparing",
+          [high]: "pivot"
+        },
+        pointers: [
+          ...(i >= low ? [{ index: i, label: "i (boundary)", color: "cyan" }] : []),
+          { index: j, label: "j (scan)", color: "amber" },
+          { index: high, label: "pivot", color: "purple" }
+        ],
+        comparisons,
+        swaps,
+        accesses,
+        pseudocodeLine: 10,
+        explanation: `Comparing arr[${j}] (${arr[j]}) with pivot (${pivot}). ${isSmallerOrEqual ? `${arr[j]} ≤ ${pivot} → Increment boundary i and swap arr[i] with arr[j].` : `${arr[j]} > ${pivot} → Belongs in right partition; advance j.`}`,
+        sortedIndices: [...sortedIndices],
+        activeRange: [low, high]
+      });
+
+      if (isSmallerOrEqual) {
+        i++;
+        if (i !== j) {
+          swaps++;
+          accesses += 4;
+          const temp = arr[i];
+          arr[i] = arr[j];
+          arr[j] = temp;
+
+          frames.push({
+            array: [...arr],
+            auxArray: null,
+            highlights: {
+              [i]: "swapping",
+              [j]: "swapping",
+              [high]: "pivot"
+            },
+            pointers: [
+              { index: i, label: "i", color: "rose" },
+              { index: j, label: "j", color: "rose" },
+              { index: high, label: "pivot", color: "purple" }
+            ],
+            comparisons,
+            swaps,
+            accesses,
+            pseudocodeLine: 10,
+            explanation: `Swapped arr[${i}] (${arr[i]}) with arr[${j}] (${arr[j]}) to keep elements ≤ pivot on the left.`,
+            sortedIndices: [...sortedIndices],
+            activeRange: [low, high]
+          });
+        }
+      }
+    }
+
+    // Place pivot in its final sorted position
+    swaps++;
+    accesses += 4;
+    const temp = arr[i + 1];
+    arr[i + 1] = arr[high];
+    arr[high] = temp;
+    const pivotIndex = i + 1;
+
+    sortedIndices.push(pivotIndex);
+
+    frames.push({
+      array: [...arr],
+      auxArray: null,
+      highlights: { [pivotIndex]: "sorted" },
+      pointers: [{ index: pivotIndex, label: `pivot fixed at ${pivotIndex}`, color: "emerald" }],
+      comparisons,
+      swaps,
+      accesses,
+      pseudocodeLine: 11,
+      explanation: `Placed pivot (${pivot}) at its correct final index ${pivotIndex}. Left subarray < ${pivot}, Right subarray ≥ ${pivot}.`,
+      sortedIndices: [...sortedIndices],
+      activeRange: [low, high]
+    });
+
+    return pivotIndex;
+  }
+
+  quickSortHelper(0, n - 1);
+
+  for (let idx = 0; idx < n; idx++) {
+    if (!sortedIndices.includes(idx)) sortedIndices.push(idx);
+  }
+
+  frames.push({
+    array: [...arr],
+    auxArray: null,
+    highlights: {},
+    pointers: [],
+    comparisons,
+    swaps,
+    accesses,
+    pseudocodeLine: 5,
+    explanation: `Quick Sort Complete! Total comparisons: ${comparisons}, Total swaps: ${swaps}.`,
+    sortedIndices: [...sortedIndices],
+    activeRange: null
+  });
+
+  return frames;
+}
+
+/**
+ * Heap Sort Frame Generator (Max-Heapify based)
+ */
+
+
+/* === algorithms/heapSort.js === */
+function generateHeapSortFrames(initialArray) {
+  const arr = [...initialArray];
+  const n = arr.length;
+  const frames = [];
+  let comparisons = 0;
+  let swaps = 0;
+  let accesses = 0;
+  const sortedIndices = [];
+
+  frames.push({
+    array: [...arr],
+    auxArray: null,
+    highlights: {},
+    pointers: [],
+    comparisons,
+    swaps,
+    accesses,
+    pseudocodeLine: 1,
+    explanation: `Starting Heap Sort. Phase 1: Build Max-Heap in O(n) time.`,
+    sortedIndices: [...sortedIndices],
+    activeRange: [0, n - 1]
+  });
+
+  function maxHeapify(heapSize, root) {
+    let largest = root;
+    const left = 2 * root + 1;
+    const right = 2 * root + 2;
+
+    if (left < heapSize) {
+      comparisons++;
+      accesses += 2;
+      if (arr[left] > arr[largest]) {
+        largest = left;
+      }
+    }
+
+    if (right < heapSize) {
+      comparisons++;
+      accesses += 2;
+      if (arr[right] > arr[largest]) {
+        largest = right;
+      }
+    }
+
+    if (largest !== root) {
+      swaps++;
+      accesses += 4;
+      const temp = arr[root];
+      arr[root] = arr[largest];
+      arr[largest] = temp;
+
+      frames.push({
+        array: [...arr],
+        auxArray: null,
+        highlights: {
+          [root]: "swapping",
+          [largest]: "swapping"
+        },
+        pointers: [
+          { index: root, label: "parent", color: "rose" },
+          { index: largest, label: "child", color: "rose" }
+        ],
+        comparisons,
+        swaps,
+        accesses,
+        pseudocodeLine: 11,
+        explanation: `MaxHeapify: Swapped parent arr[${root}] with larger child arr[${largest}] (${arr[root]}).`,
+        sortedIndices: [...sortedIndices],
+        activeRange: [0, heapSize - 1]
+      });
+
+      maxHeapify(heapSize, largest);
+    }
+  }
+
+  // Phase 1: Build Max Heap
+  for (let i = Math.floor(n / 2) - 1; i >= 0; i--) {
+    frames.push({
+      array: [...arr],
+      auxArray: null,
+      highlights: { [i]: "selected" },
+      pointers: [{ index: i, label: `heapify node ${i}`, color: "purple" }],
+      comparisons,
+      swaps,
+      accesses,
+      pseudocodeLine: 2,
+      explanation: `Phase 1 (Build-Max-Heap): Heapifying subtree rooted at index ${i} (Value: ${arr[i]}).`,
+      sortedIndices: [...sortedIndices],
+      activeRange: [0, n - 1]
+    });
+    maxHeapify(n, i);
+  }
+
+  frames.push({
+    array: [...arr],
+    auxArray: null,
+    highlights: { 0: "pivot" },
+    pointers: [{ index: 0, label: `Max Root = ${arr[0]}`, color: "emerald" }],
+    comparisons,
+    swaps,
+    accesses,
+    pseudocodeLine: 2,
+    explanation: `Max-Heap constructed! The maximum element (${arr[0]}) is at root arr[0]. Phase 2: Repeatedly extract max.`,
+    sortedIndices: [...sortedIndices],
+    activeRange: [0, n - 1]
+  });
+
+  // Phase 2: Extract elements from heap
+  for (let i = n - 1; i > 0; i--) {
+    // Swap root with end of unsorted heap
+    swaps++;
+    accesses += 4;
+    const temp = arr[0];
+    arr[0] = arr[i];
+    arr[i] = temp;
+
+    sortedIndices.push(i);
+
+    frames.push({
+      array: [...arr],
+      auxArray: null,
+      highlights: {
+        [0]: "swapping",
+        [i]: "sorted"
+      },
+      pointers: [
+        { index: 0, label: "new root", color: "amber" },
+        { index: i, label: `max extracted (${arr[i]})`, color: "emerald" }
+      ],
+      comparisons,
+      swaps,
+      accesses,
+      pseudocodeLine: 4,
+      explanation: `Extracted max element (${arr[i]}) to index ${i}. Reduced heap size to ${i}. Restoring Max-Heap property.`,
+      sortedIndices: [...sortedIndices],
+      activeRange: [0, i - 1]
+    });
+
+    maxHeapify(i, 0);
+  }
+
+  sortedIndices.push(0);
+  frames.push({
+    array: [...arr],
+    auxArray: null,
+    highlights: {},
+    pointers: [],
+    comparisons,
+    swaps,
+    accesses,
+    pseudocodeLine: 5,
+    explanation: `Heap Sort Complete! Worst Case Time: O(n log n), Auxiliary Space: O(1). Total comparisons: ${comparisons}.`,
+    sortedIndices: [...sortedIndices],
+    activeRange: null
+  });
+
+  return frames;
+}
+
+/**
+ * Visualizer Rendering Engine
+ * Renders Number Cards, Index Labels, Active Pointer Badges, and Auxiliary Arrays
+ */
+
+
+/* === visualizer.js === */
+class Visualizer {
+  constructor(mainContainerId, auxContainerId, auxSectionId) {
+    this.mainContainer = document.getElementById(mainContainerId);
+    this.auxContainer = document.getElementById(auxContainerId);
+    this.auxSection = document.getElementById(auxSectionId);
+    this.audioCtx = null;
+    this.audioEnabled = false;
+  }
+
+  initAudio() {
+    if (!this.audioCtx) {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (AudioContext) {
+        this.audioCtx = new AudioContext();
+      }
+    }
+    if (this.audioCtx && this.audioCtx.state === "suspended") {
+      this.audioCtx.resume();
+    }
+  }
+
+  playTone(val, minVal = 0, maxVal = 100) {
+    if (!this.audioEnabled) return;
+    try {
+      this.initAudio();
+      if (!this.audioCtx) return;
+
+      const osc = this.audioCtx.createOscillator();
+      const gain = this.audioCtx.createGain();
+      
+      const normalized = Math.max(0, Math.min(1, (val - minVal) / (maxVal - minVal || 1)));
+      const freq = 220 + normalized * 660; // 220Hz (A3) to 880Hz (A5)
+      
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(freq, this.audioCtx.currentTime);
+      
+      gain.gain.setValueAtTime(0.04, this.audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.0001, this.audioCtx.currentTime + 0.12);
+      
+      osc.connect(gain);
+      gain.connect(this.audioCtx.destination);
+      
+      osc.start();
+      osc.stop(this.audioCtx.currentTime + 0.12);
+    } catch (e) {
+      // Ignore audio errors silently
+    }
+  }
+
+  render(frame) {
+    if (!frame) return;
+
+    const {
+      array,
+      auxArray,
+      highlights = {},
+      pointers = [],
+      auxPointers = [],
+      sortedIndices = [],
+      activeRange = null
+    } = frame;
+
+    const minVal = Math.min(...array, 0);
+    const maxVal = Math.max(...array, 100);
+
+    // 1. Render Main Array
+    this.mainContainer.innerHTML = "";
+    
+    // Group pointers by index
+    const pointerMap = {};
+    pointers.forEach(p => {
+      if (!pointerMap[p.index]) pointerMap[p.index] = [];
+      pointerMap[p.index].push(p);
+    });
+
+    array.forEach((val, idx) => {
+      const card = document.createElement("div");
+      card.className = "num-card";
+
+      // Determine state class
+      let stateClass = "state-default";
+      if (sortedIndices.includes(idx)) {
+        stateClass = "state-sorted";
+      } else if (highlights[idx]) {
+        stateClass = `state-${highlights[idx]}`;
+      } else if (activeRange && (idx < activeRange[0] || idx > activeRange[1])) {
+        stateClass = "state-dimmed";
+      }
+
+      card.classList.add(stateClass);
+
+      // Pointers container (top badge)
+      const pointersDiv = document.createElement("div");
+      pointersDiv.className = "pointer-badges-container";
+      
+      if (pointerMap[idx]) {
+        pointerMap[idx].forEach(ptr => {
+          const badge = document.createElement("span");
+          badge.className = `pointer-badge badge-${ptr.color || "blue"}`;
+          badge.innerText = ptr.label;
+          pointersDiv.appendChild(badge);
+        });
+      }
+      card.appendChild(pointersDiv);
+
+      // Value Tile
+      const valDiv = document.createElement("div");
+      valDiv.className = "card-value";
+      valDiv.innerText = val;
+      card.appendChild(valDiv);
+
+      // Index Label (bottom)
+      const idxDiv = document.createElement("div");
+      idxDiv.className = "card-index";
+      idxDiv.innerText = `[${idx}]`;
+      card.appendChild(idxDiv);
+
+      // Sound trigger on comparison/swap
+      if (highlights[idx] === "comparing" || highlights[idx] === "swapping") {
+        this.playTone(val, minVal, maxVal);
+      }
+
+      this.mainContainer.appendChild(card);
+    });
+
+    // 2. Render Auxiliary Array (for Merge Sort / Radix Sort)
+    if (auxArray && auxArray.length > 0) {
+      this.auxSection.style.display = "block";
+      this.auxContainer.innerHTML = "";
+
+      const auxPointerMap = {};
+      auxPointers.forEach(p => {
+        if (!auxPointerMap[p.index]) auxPointerMap[p.index] = [];
+        auxPointerMap[p.index].push(p);
+      });
+
+      auxArray.forEach((val, idx) => {
+        const auxCard = document.createElement("div");
+        auxCard.className = "num-card aux-card";
+
+        // Aux pointers
+        const auxPointersDiv = document.createElement("div");
+        auxPointersDiv.className = "pointer-badges-container";
+        if (auxPointerMap[idx]) {
+          auxPointerMap[idx].forEach(ptr => {
+            const badge = document.createElement("span");
+            badge.className = `pointer-badge badge-${ptr.color || "amber"}`;
+            badge.innerText = ptr.label;
+            auxPointersDiv.appendChild(badge);
+          });
+        }
+        auxCard.appendChild(auxPointersDiv);
+
+        // Aux Value
+        const valDiv = document.createElement("div");
+        valDiv.className = "card-value";
+        valDiv.innerText = val;
+        auxCard.appendChild(valDiv);
+
+        // Aux Index
+        const idxDiv = document.createElement("div");
+        idxDiv.className = "card-index";
+        idxDiv.innerText = `aux[${idx}]`;
+        auxCard.appendChild(idxDiv);
+
+        this.auxContainer.appendChild(auxCard);
+      });
+    } else {
+      this.auxSection.style.display = "none";
+      this.auxContainer.innerHTML = "";
+    }
+  }
+}
+
+/**
+ * Interactive Algorithm Chatbot & Doubt-Solver
+ * Context-aware AI tutor providing instant explanations and algorithm doubt resolution
+ */
+
+
+/* === chatbot.js === */
+class AlgorithmChatbot {
+  constructor(appState) {
+    this.appState = appState;
+    this.isOpen = false;
+    
+    // DOM Elements
+    this.launcherBtn = document.getElementById("chatbot-launcher-btn");
+    this.chatWindow = document.getElementById("chatbot-window");
+    this.closeBtn = document.getElementById("chatbot-close-btn");
+    this.messagesContainer = document.getElementById("chatbot-messages");
+    this.inputField = document.getElementById("chatbot-input");
+    this.sendBtn = document.getElementById("chatbot-send-btn");
+    this.suggestionsContainer = document.getElementById("chatbot-suggestions");
+    this.unreadBadge = document.getElementById("chatbot-unread-badge");
+
+    this.initEventListeners();
+    this.renderInitialGreeting();
+  }
+
+  initEventListeners() {
+    if (!this.launcherBtn || !this.chatWindow) return;
+
+    this.launcherBtn.addEventListener("click", () => this.toggleChat());
+    if (this.closeBtn) {
+      this.closeBtn.addEventListener("click", () => this.toggleChat(false));
+    }
+    
+    if (this.sendBtn) {
+      this.sendBtn.addEventListener("click", () => this.handleUserSend());
+    }
+
+    if (this.inputField) {
+      this.inputField.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          this.handleUserSend();
+        }
+      });
+    }
+
+    // Delegate suggestion chip clicks
+    if (this.suggestionsContainer) {
+      this.suggestionsContainer.addEventListener("click", (e) => {
+        const chip = e.target.closest(".suggestion-chip");
+        if (chip) {
+          const query = chip.dataset.query || chip.innerText;
+          this.addUserMessage(query);
+          this.processQuery(query);
+        }
+      });
+    }
+  }
+
+  toggleChat(forceState = null) {
+    this.isOpen = forceState !== null ? forceState : !this.isOpen;
+    if (this.isOpen) {
+      this.chatWindow.classList.add("open");
+      this.launcherBtn.classList.add("active");
+      if (this.unreadBadge) this.unreadBadge.style.display = "none";
+      if (this.inputField) this.inputField.focus();
+      this.updateDynamicSuggestions();
+      this.scrollToBottom();
+    } else {
+      this.chatWindow.classList.remove("open");
+      this.launcherBtn.classList.remove("active");
+    }
+  }
+
+  renderInitialGreeting() {
+    const greeting = "👋 Hello! I'm your **Algorithm Assistant**. If you have any doubt about the current algorithm, time complexity, why cards are swapping, or what the colors mean, just ask me below!";
+    this.addBotMessage(greeting);
+    this.updateDynamicSuggestions();
+  }
+
+  updateDynamicSuggestions() {
+    if (!this.suggestionsContainer) return;
+    const algo = this.appState.currentAlgorithm || "bubble";
+    const algoName = (typeof COMPLEXITY_DATA !== "undefined" && COMPLEXITY_DATA[algo]?.name) || "Sorting";
+
+    const commonSuggestions = [
+      { text: `💡 Explain current step`, query: "Explain what is happening in the current step" },
+      { text: `⚡ Why is ${algoName} used?`, query: `Tell me about ${algoName}` },
+      { text: `⏱ Time Complexity of ${algoName}`, query: `What is the time complexity of ${algoName}?` },
+      { text: `🎨 What do the colors mean?`, query: "What do the colors mean?" },
+      { text: `🔄 Merge vs Quick Sort`, query: "What is the difference between Merge Sort and Quick Sort?" }
+    ];
+
+    this.suggestionsContainer.innerHTML = "";
+    commonSuggestions.forEach(item => {
+      const chip = document.createElement("button");
+      chip.className = "suggestion-chip";
+      chip.innerText = item.text;
+      chip.dataset.query = item.query;
+      this.suggestionsContainer.appendChild(chip);
+    });
+  }
+
+  handleUserSend() {
+    const text = this.inputField.value.trim();
+    if (!text) return;
+
+    this.addUserMessage(text);
+    this.inputField.value = "";
+    this.processQuery(text);
+  }
+
+  addUserMessage(text) {
+    const msgDiv = document.createElement("div");
+    msgDiv.className = "chat-msg msg-user";
+    msgDiv.innerText = text;
+    this.messagesContainer.appendChild(msgDiv);
+    this.scrollToBottom();
+  }
+
+  addBotMessage(markdownText) {
+    const msgDiv = document.createElement("div");
+    msgDiv.className = "chat-msg msg-bot";
+    msgDiv.innerHTML = this.formatMarkdown(markdownText);
+    this.messagesContainer.appendChild(msgDiv);
+    this.scrollToBottom();
+  }
+
+  showTypingIndicator() {
+    const typing = document.createElement("div");
+    typing.className = "chat-msg msg-bot typing-indicator-msg";
+    typing.id = "bot-typing-indicator";
+    typing.innerHTML = `<span class="dot"></span><span class="dot"></span><span class="dot"></span>`;
+    this.messagesContainer.appendChild(typing);
+    this.scrollToBottom();
+  }
+
+  hideTypingIndicator() {
+    const el = document.getElementById("bot-typing-indicator");
+    if (el) el.remove();
+  }
+
+  scrollToBottom() {
+    this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
+  }
+
+  formatMarkdown(text) {
+    return text
+      .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+      .replace(/\*(.*?)\*/g, "<em>$1</em>")
+      .replace(/`([^`]+)`/g, "<code>$1</code>")
+      .replace(/\n\n/g, "<br><br>")
+      .replace(/\n- (.*?)/g, "<br>• $1")
+      .replace(/\n• (.*?)/g, "<br>• $1")
+      .replace(/\n/g, "<br>");
+  }
+
+  processQuery(rawQuery) {
+    this.showTypingIndicator();
+    const q = rawQuery.toLowerCase().trim();
+
+    setTimeout(() => {
+      this.hideTypingIndicator();
+      const response = this.generateAnswer(q);
+      this.addBotMessage(response);
+      this.updateDynamicSuggestions();
+    }, 350);
+  }
+
+  generateAnswer(q) {
+    const currentAlgo = this.appState.currentAlgorithm || "bubble";
+    const currentFrame = this.appState.frames ? this.appState.frames[this.appState.currentFrameIndex] : null;
+    const theory = (typeof COMPLEXITY_DATA !== "undefined" && COMPLEXITY_DATA[currentAlgo]) ? COMPLEXITY_DATA[currentAlgo] : { name: "Algorithm" };
+
+    // 1. Current Step Inquiries
+    if (q.includes("current step") || q.includes("happening right now") || q.includes("what is happening") || q.includes("explain step") || q.includes("explain this step") || q.includes("why swap") || q.includes("why comparing")) {
+      if (!currentFrame) {
+        return "The algorithm has not started yet. Click **Play** or **Step Next** to begin!";
+      }
+      return `**Current Step Analysis (${theory.name}):**\n` +
+             `• **Action:** ${currentFrame.explanation}\n` +
+             `• **Live Counters:** Comparisons = \`${currentFrame.comparisons}\`, Swaps/Writes = \`${currentFrame.swaps}\`, Array Accesses = \`${currentFrame.accesses}\`\n` +
+             `• **Active Pseudocode Line:** Line ${currentFrame.pseudocodeLine}`;
+    }
+
+    // 2. Color Explanations
+    if (q.includes("color") || q.includes("colour") || q.includes("yellow") || q.includes("amber") || q.includes("green") || q.includes("red") || q.includes("purple") || q.includes("blue")) {
+      return "**Color Legend & Meanings:**\n" +
+             "• 🔵 **Slate Blue (Default):** Unsorted elements.\n" +
+             "• 🟡 **Amber / Yellow (Comparing):** Two elements currently being compared.\n" +
+             "• 🔴 **Rose / Red (Swapping/Writing):** Elements actively being swapped or shifted.\n" +
+             "• 🟣 **Purple / Cyan (Pivot / Key):** The active partition pivot (Quick Sort) or insertion key.\n" +
+             "• 🟢 **Emerald Green (Sorted):** Elements locked in their permanent sorted positions.";
+    }
+
+    // 3. Custom Input Array Help
+    if (q.includes("custom array") || q.includes("how to input") || q.includes("give input") || q.includes("enter array") || q.includes("array input")) {
+      return "**How to Enter Custom Array:**\n" +
+             "1. Type your numbers into the **Custom Array Input** box at the top.\n" +
+             "2. Separate numbers with commas or spaces (e.g. `64, 34, 25, 12, 22, 11, 90`).\n" +
+             "3. Click **Apply Array** or press **Enter**.\n" +
+             "4. You can also click the quick preset buttons like **Random**, **Sorted**, or **Reverse Sorted**!";
+    }
+
+    // 4. Time Complexity of Current or Specific Algorithm
+    if (q.includes("complexity") || q.includes("time") || q.includes("big o") || q.includes("space")) {
+      let targetAlgo = currentAlgo;
+      if (q.includes("bubble")) targetAlgo = "bubble";
+      else if (q.includes("selection")) targetAlgo = "selection";
+      else if (q.includes("insertion")) targetAlgo = "insertion";
+      else if (q.includes("merge")) targetAlgo = "merge";
+      else if (q.includes("quick")) targetAlgo = "quick";
+      else if (q.includes("heap")) targetAlgo = "heap";
+
+      if (typeof COMPLEXITY_DATA !== "undefined" && COMPLEXITY_DATA[targetAlgo]) {
+        const t = COMPLEXITY_DATA[targetAlgo];
+        return `**${t.name} Complexity Analysis:**\n` +
+               `• **Best Case Time:** \`${t.timeBest}\`\n` +
+               `• **Average Case Time:** \`${t.timeAvg}\`\n` +
+               `• **Worst Case Time:** \`${t.timeWorst}\`\n` +
+               `• **Auxiliary Space:** \`${t.spaceWorst}\`\n` +
+               `• **In-Place:** \`${t.inPlace}\` | **Stable:** \`${t.stable}\`\n` +
+               `• **Recurrence Formula:** \`${t.recurrence}\``;
+      }
+    }
+
+    // 5. Algorithm Explanations (What is X sort?)
+    if (q.includes("bubble sort") || q.includes("what is bubble") || (q.includes("bubble") && q.includes("work"))) {
+      return "**Bubble Sort:** Repeatedly compares adjacent elements and swaps them if they are in the wrong order. With the early-exit optimization flag, it achieves $\\mathcal{O}(n)$ best-case time when the array is already sorted.";
+    }
+    if (q.includes("selection sort") || q.includes("what is selection") || (q.includes("selection") && q.includes("work"))) {
+      return "**Selection Sort:** Divides the array into sorted and unsorted parts. It repeatedly scans the unsorted part for the minimum element and swaps it into place. It always performs $\\mathcal{O}(n^2)$ comparisons but at most $n-1$ swaps.";
+    }
+    if (q.includes("insertion sort") || q.includes("what is insertion") || (q.includes("insertion") && q.includes("work"))) {
+      return "**Insertion Sort:** Builds the sorted array incrementally by taking the next element (`key`) and shifting larger elements in the sorted prefix to the right. Very fast for nearly sorted arrays ($\\mathcal{O}(n)$ best case).";
+    }
+    if (q.includes("merge sort") || q.includes("what is merge") || (q.includes("merge") && q.includes("work"))) {
+      return "**Merge Sort:** A Divide & Conquer algorithm that splits the array into two halves, recursively sorts them, and merges them using an auxiliary buffer. Guarantees $\\mathcal{O}(n \\log n)$ time in all cases with $\\mathcal{O}(n)$ extra space.";
+    }
+    if (q.includes("quick sort") || q.includes("what is quick") || (q.includes("quick") && q.includes("work"))) {
+      return "**Quick Sort:** A Divide & Conquer algorithm that selects a `pivot`, partitions elements into those $\\le pivot$ and those $> pivot$, then recursively sorts the partitions. Average time is $\\mathcal{O}(n \\log n)$, but degrades to $\\mathcal{O}(n^2)$ if partitions are unbalanced.";
+    }
+    if (q.includes("heap sort") || q.includes("what is heap") || (q.includes("heap") && q.includes("work"))) {
+      return "**Heap Sort:** Builds a Max-Heap in $\\mathcal{O}(n)$ time, then repeatedly extracts the root (maximum element) to the end of the array and restores the heap property in $\\mathcal{O}(\\log n)$ per element. Runs in $\\mathcal{O}(n \\log n)$ in-place.";
+    }
+
+    // 6. Comparative Questions
+    if ((q.includes("merge") && q.includes("quick")) || q.includes("merge vs quick")) {
+      return "**Merge Sort vs Quick Sort:**\n" +
+             "• **Merge Sort:** Guaranteed $\\mathcal{O}(n \\log n)$ in all cases, Stable, but requires $\\mathcal{O}(n)$ extra memory.\n" +
+             "• **Quick Sort:** In-place $\\mathcal{O}(1)$ extra memory, faster in practice due to cache locality, but $\\mathcal{O}(n^2)$ worst case on sorted arrays with naive pivot.";
+    }
+    if ((q.includes("quick") && q.includes("heap")) || q.includes("heap vs quick")) {
+      return "**Quick Sort vs Heap Sort:**\n" +
+             "• Both have $\\mathcal{O}(n \\log n)$ average time and are in-place.\n" +
+             "• **Heap Sort** guarantees $\\mathcal{O}(n \\log n)$ worst-case, whereas Quick Sort can degrade to $\\mathcal{O}(n^2)$.\n" +
+             "• However, **Quick Sort** is faster in practice because Heap Sort makes non-contiguous memory jumps ($2i+1, 2i+2$) causing CPU cache misses.";
+    }
+
+    // 7. Master Theorem & Proofs
+    if (q.includes("master theorem") || q.includes("recurrence") || q.includes("proof")) {
+      return "**Master Theorem for Merge Sort:**\n" +
+             "• Recurrence: `T(n) = 2T(n/2) + O(n)`\n" +
+             "• Here `a = 2`, `b = 2`, `f(n) = O(n)`\n" +
+             "• `log_b(a) = log_2(2) = 1` ==> `n^1 = n`\n" +
+             "• Since `f(n) = Theta(n^1)`, **Case 2 applies**:\n" +
+             "• `T(n) = Theta(n log n)`";
+    }
+
+    // 8. In-Place & Stability
+    if (q.includes("stable") || q.includes("stability")) {
+      return "**What is Stability?**\n" +
+             "A sorting algorithm is **Stable** if equal elements retain their original relative order after sorting.\n" +
+             "• **Stable:** Bubble Sort, Insertion Sort, Merge Sort.\n" +
+             "• **Unstable:** Quick Sort, Heap Sort, Selection Sort.";
+    }
+    if (q.includes("in-place") || q.includes("inplace")) {
+      return "**What is In-Place?**\n" +
+             "An algorithm is **In-Place** if it requires $\\mathcal{O}(1)$ (or $\\mathcal{O}(\\log n)$ stack space) extra auxiliary memory.\n" +
+             "• **In-Place:** Bubble, Selection, Insertion, Quick, Heap sorts.\n" +
+             "• **Not In-Place:** Merge Sort (requires $\\mathcal{O}(n)$ auxiliary buffer).";
+    }
+
+    // 9. Inversions
+    if (q.includes("inversion")) {
+      return "**What is an Inversion?**\n" +
+             "An inversion is a pair `(i, j)` where `i < j` but `arr[i] > arr[j]`.\n" +
+             "• An already sorted array has **0 inversions**.\n" +
+             "• A reverse-sorted array has maximum inversions: `n(n-1)/2`.\n" +
+             "• **Insertion Sort** swaps directly resolve inversions, running in `O(n + I)` time!";
+    }
+
+    // 10. Default Fallback
+    return `I can help you with doubts about **${theory.name}** or any sorting concept! Try asking:\n` +
+           `• *"Explain what is happening in the current step"*\n` +
+           `• *"Why is ${theory.name} ${theory.timeWorst || "O(n²)"} in worst case?"*\n` +
+           `• *"What do the colors mean?"*\n` +
+           `• *"What is the difference between Merge and Quick sort?"*\n` +
+           `• *"How does the timeline scrubber work?"*`;
+  }
+}
+
+/**
+ * Main Application Controller for Interactive Sorting Visualizer
+ * Handles real-time playback, custom array parsing, pseudocode line-tracking,
+ * and Real-Life Examples & Drawbacks rendering.
+ */
+
+
+/* === app.js === */
+document.addEventListener("DOMContentLoaded", () => {
+  // Application State
+  const state = {
+    currentAlgorithm: "bubble",
+    rawArray: [45, 12, 85, 32, 89, 39, 69, 44, 1],
+    frames: [],
+    currentFrameIndex: 0,
+    isPlaying: false,
+    timerId: null,
+    speedMs: 500, // delay between frames
+    startTime: null,
+    elapsedMs: 0
+  };
+
+  // Instantiate Visualizer
+  const visualizer = new Visualizer("main-array-container", "aux-array-container", "aux-array-section");
+
+  // DOM Element References
+  const algorithmSelect = document.getElementById("algorithm-select");
+  const customArrayInput = document.getElementById("custom-array-input");
+  const loadArrayBtn = document.getElementById("load-array-btn");
+  const inputErrorMsg = document.getElementById("input-error-msg");
+
+  // Preset Buttons
+  const presetRandomBtn = document.getElementById("preset-random");
+  const presetSortedBtn = document.getElementById("preset-sorted");
+  const presetReverseBtn = document.getElementById("preset-reverse");
+  const presetNearlyBtn = document.getElementById("preset-nearly");
+  const presetDuplicatesBtn = document.getElementById("preset-duplicates");
+
+  // Playback Buttons & Controls
+  const playPauseBtn = document.getElementById("play-pause-btn");
+  const playPauseIcon = document.getElementById("play-pause-icon");
+  const playPauseText = document.getElementById("play-pause-text");
+  const stepBackBtn = document.getElementById("step-back-btn");
+  const stepForwardBtn = document.getElementById("step-forward-btn");
+  const resetBtn = document.getElementById("reset-btn");
+  const timelineSlider = document.getElementById("timeline-slider");
+  const stepCounterText = document.getElementById("step-counter-text");
+  const speedSlider = document.getElementById("speed-slider");
+  const speedLabel = document.getElementById("speed-label");
+  const soundToggle = document.getElementById("sound-toggle");
+
+  // Status & Metrics DOM
+  const stepExplanationText = document.getElementById("step-explanation-text");
+  const metricComparisons = document.getElementById("metric-comparisons");
+  const metricSwaps = document.getElementById("metric-swaps");
+  const metricAccesses = document.getElementById("metric-accesses");
+  const metricTime = document.getElementById("metric-time");
+
+  // Complexity & Theory DOM
+  const algoNameTitle = document.getElementById("algo-name-title");
+  const algoCategoryBadge = document.getElementById("algo-category-badge");
+  const algoDescription = document.getElementById("algo-description");
+  const timeBestVal = document.getElementById("time-best-val");
+  const timeAvgVal = document.getElementById("time-avg-val");
+  const timeWorstVal = document.getElementById("time-worst-val");
+  const spaceWorstVal = document.getElementById("space-worst-val");
+  const inPlaceVal = document.getElementById("inplace-val");
+  const stableVal = document.getElementById("stable-val");
+  const recurrenceVal = document.getElementById("recurrence-val");
+  const pseudocodeContainer = document.getElementById("pseudocode-lines-container");
+
+  // Real-Life Applications & Drawbacks DOM
+  const realLifeTitle = document.getElementById("real-life-analogy-title");
+  const realLifeStory = document.getElementById("real-life-story");
+  const practicalUsesList = document.getElementById("practical-uses-list");
+  const advantagesList = document.getElementById("advantages-list");
+  const drawbacksList = document.getElementById("drawbacks-list");
+
+  // --- 1. Array Parsing and Validation ---
+  function parseCustomArray(inputStr) {
+    if (!inputStr || typeof inputStr !== "string") {
+      throw new Error("Input cannot be empty. Please enter comma or space separated numbers.");
+    }
+
+    const cleaned = inputStr.replace(/[\[\]]/g, "").trim();
+    if (!cleaned) {
+      throw new Error("Array contains no numbers. Enter values like: 64, 34, 25, 12, 22, 11, 90");
+    }
+
+    const tokens = cleaned.split(/[\s,]+/);
+    const parsed = [];
+
+    for (const token of tokens) {
+      if (!token) continue;
+      const num = Number(token);
+      if (isNaN(num)) {
+        throw new Error(`Invalid token "${token}". Please enter valid integers only.`);
+      }
+      if (!Number.isInteger(num)) {
+        throw new Error(`Float value "${token}" detected. Please use integers for sorting visualization.`);
+      }
+      if (num < -999 || num > 9999) {
+        throw new Error(`Number ${num} is out of visual range (-999 to 9999) for readable card rendering.`);
+      }
+      parsed.push(num);
+    }
+
+    if (parsed.length < 2) {
+      throw new Error("Array must have at least 2 numbers to visualize sorting.");
+    }
+    if (parsed.length > 30) {
+      throw new Error(`Array length is ${parsed.length}. Recommended max size for clear card readability is 30 elements.`);
+    }
+
+    return parsed;
+  }
+
+  function handleCustomArrayLoad() {
+    inputErrorMsg.innerText = "";
+    inputErrorMsg.style.display = "none";
+
+    try {
+      const parsed = parseCustomArray(customArrayInput.value);
+      state.rawArray = parsed;
+      customArrayInput.value = parsed.join(", ");
+      resetSimulation();
+      showNotification("Custom array loaded successfully!", "success");
+    } catch (err) {
+      inputErrorMsg.innerText = err.message;
+      inputErrorMsg.style.display = "block";
+      showNotification(err.message, "error");
+    }
+  }
+
+  function showNotification(msg, type = "info") {
+    const toast = document.getElementById("toast-banner");
+    if (toast) {
+      toast.innerText = msg;
+      toast.className = `toast-banner show toast-${type}`;
+      setTimeout(() => {
+        toast.className = "toast-banner";
+      }, 3000);
+    }
+  }
+
+  // --- 2. Frame Generation ---
+  function generateFrames() {
+    const arr = [...state.rawArray];
+    const algo = state.currentAlgorithm;
+
+    switch (algo) {
+      case "bubble":
+        state.frames = generateBubbleSortFrames(arr);
+        break;
+      case "selection":
+        state.frames = generateSelectionSortFrames(arr);
+        break;
+      case "insertion":
+        state.frames = generateInsertionSortFrames(arr);
+        break;
+      case "merge":
+        state.frames = generateMergeSortFrames(arr);
+        break;
+      case "quick":
+        state.frames = generateQuickSortFrames(arr);
+        break;
+      case "heap":
+        state.frames = generateHeapSortFrames(arr);
+        break;
+      default:
+        state.frames = generateBubbleSortFrames(arr);
+    }
+
+    timelineSlider.max = Math.max(0, state.frames.length - 1);
+    timelineSlider.value = 0;
+  }
+
+  // --- 3. UI Synchronization ---
+  function updateUIForCurrentFrame() {
+    if (!state.frames || state.frames.length === 0) return;
+
+    const frame = state.frames[state.currentFrameIndex];
+    if (!frame) return;
+
+    // Render cards
+    visualizer.render(frame);
+
+    // Update Slider & Counters
+    timelineSlider.value = state.currentFrameIndex;
+    stepCounterText.innerText = `Step ${state.currentFrameIndex + 1} of ${state.frames.length}`;
+
+    // Update Metrics
+    metricComparisons.innerText = frame.comparisons;
+    metricSwaps.innerText = frame.swaps;
+    metricAccesses.innerText = frame.accesses;
+
+    // Update Step Explanation
+    stepExplanationText.innerText = frame.explanation || "Algorithm in progress...";
+
+    // Highlight active line in pseudocode
+    const lines = pseudocodeContainer.querySelectorAll(".pseudo-line");
+    lines.forEach(lineEl => {
+      const lineNum = Number(lineEl.dataset.line);
+      if (lineNum === frame.pseudocodeLine) {
+        lineEl.classList.add("active-line");
+      } else {
+        lineEl.classList.remove("active-line");
+      }
+    });
+
+    // Check if finished
+    if (state.currentFrameIndex >= state.frames.length - 1) {
+      pauseSimulation();
+    }
+  }
+
+  function renderPseudocodeAndTheory() {
+    const algoKey = state.currentAlgorithm;
+    const theory = COMPLEXITY_DATA[algoKey];
+    const pseudocode = PSEUDOCODE_DATA[algoKey];
+
+    if (!theory || !pseudocode) return;
+
+    // Update Theory Card
+    algoNameTitle.innerText = theory.name;
+    algoCategoryBadge.innerText = theory.category;
+    algoDescription.innerText = theory.description;
+    timeBestVal.innerText = theory.timeBest;
+    timeAvgVal.innerText = theory.timeAvg;
+    timeWorstVal.innerText = theory.timeWorst;
+    spaceWorstVal.innerText = theory.spaceWorst;
+    inPlaceVal.innerText = theory.inPlace;
+    stableVal.innerText = theory.stable;
+    recurrenceVal.innerText = theory.recurrence;
+
+    // Update Real-Life Example & Analogy Card
+    if (realLifeTitle && theory.realLifeExample) {
+      realLifeTitle.innerText = theory.realLifeExample.analogy;
+      realLifeStory.innerText = theory.realLifeExample.story;
+    }
+
+    // Update Practical Uses
+    if (practicalUsesList && theory.practicalUses) {
+      practicalUsesList.innerHTML = "";
+      theory.practicalUses.forEach(use => {
+        const li = document.createElement("li");
+        li.innerText = use;
+        practicalUsesList.appendChild(li);
+      });
+    }
+
+    // Update Advantages
+    if (advantagesList && theory.advantages) {
+      advantagesList.innerHTML = "";
+      theory.advantages.forEach(adv => {
+        const li = document.createElement("li");
+        li.innerHTML = `<span class="icon-check">✓</span> <span>${adv}</span>`;
+        advantagesList.appendChild(li);
+      });
+    }
+
+    // Update Drawbacks
+    if (drawbacksList && theory.drawbacks) {
+      drawbacksList.innerHTML = "";
+      theory.drawbacks.forEach(draw => {
+        const li = document.createElement("li");
+        li.innerHTML = `<span class="icon-cross">✗</span> <span>${draw}</span>`;
+        drawbacksList.appendChild(li);
+      });
+    }
+
+    // Render Pseudocode lines
+    pseudocodeContainer.innerHTML = "";
+    pseudocode.forEach(item => {
+      const lineDiv = document.createElement("div");
+      lineDiv.className = "pseudo-line";
+      lineDiv.dataset.line = item.line;
+
+      const numSpan = document.createElement("span");
+      numSpan.className = "pseudo-num";
+      numSpan.innerText = item.line;
+
+      const codeSpan = document.createElement("span");
+      codeSpan.className = "pseudo-code";
+      codeSpan.innerText = item.text;
+
+      lineDiv.appendChild(numSpan);
+      lineDiv.appendChild(codeSpan);
+      pseudocodeContainer.appendChild(lineDiv);
+    });
+  }
+
+  // --- 4. Playback Controller ---
+  function playSimulation() {
+    if (state.isPlaying) return;
+
+    if (state.currentFrameIndex >= state.frames.length - 1) {
+      state.currentFrameIndex = 0;
+    }
+
+    state.isPlaying = true;
+    playPauseIcon.className = "icon-pause";
+    playPauseText.innerText = "Pause";
+    playPauseBtn.classList.add("btn-playing");
+
+    if (!state.startTime) {
+      state.startTime = performance.now() - state.elapsedMs;
+    }
+
+    tickLoop();
+  }
+
+  function pauseSimulation() {
+    state.isPlaying = false;
+    if (state.timerId) {
+      clearTimeout(state.timerId);
+      state.timerId = null;
+    }
+    playPauseIcon.className = "icon-play";
+    playPauseText.innerText = "Play";
+    playPauseBtn.classList.remove("btn-playing");
+  }
+
+  function tickLoop() {
+    if (!state.isPlaying) return;
+
+    if (state.currentFrameIndex < state.frames.length - 1) {
+      state.currentFrameIndex++;
+      updateUIForCurrentFrame();
+
+      state.timerId = setTimeout(() => {
+        tickLoop();
+      }, state.speedMs);
+    } else {
+      pauseSimulation();
+    }
+  }
+
+  function resetSimulation() {
+    pauseSimulation();
+    generateFrames();
+    state.currentFrameIndex = 0;
+    state.elapsedMs = 0;
+    state.startTime = null;
+    metricTime.innerText = "0 ms";
+    updateUIForCurrentFrame();
+  }
+
+  function stepForward() {
+    pauseSimulation();
+    if (state.currentFrameIndex < state.frames.length - 1) {
+      state.currentFrameIndex++;
+      updateUIForCurrentFrame();
+    }
+  }
+
+  function stepBackward() {
+    pauseSimulation();
+    if (state.currentFrameIndex > 0) {
+      state.currentFrameIndex--;
+      updateUIForCurrentFrame();
+    }
+  }
+
+  // --- 5. Presets Generation ---
+  function generateRandomArray(size = 9) {
+    const arr = [];
+    for (let i = 0; i < size; i++) {
+      arr.push(Math.floor(Math.random() * 95) + 5);
+    }
+    return arr;
+  }
+
+  function generateSortedArray(size = 9) {
+    const arr = generateRandomArray(size);
+    arr.sort((a, b) => a - b);
+    return arr;
+  }
+
+  function generateReverseArray(size = 9) {
+    const arr = generateRandomArray(size);
+    arr.sort((a, b) => b - a);
+    return arr;
+  }
+
+  function generateNearlySortedArray(size = 9) {
+    const arr = generateSortedArray(size);
+    if (arr.length > 3) {
+      const idx1 = Math.floor(size / 3);
+      const idx2 = idx1 + 1;
+      const tmp = arr[idx1];
+      arr[idx1] = arr[idx2];
+      arr[idx2] = tmp;
+    }
+    return arr;
+  }
+
+  function generateDuplicatesArray(size = 9) {
+    const pool = [15, 30, 45, 60, 30, 45, 15, 60, 30];
+    return pool.slice(0, size);
+  }
+
+  function loadPreset(generatorFn, name) {
+    const size = state.rawArray.length || 9;
+    const newArr = generatorFn(size);
+    state.rawArray = newArr;
+    customArrayInput.value = newArr.join(", ");
+    inputErrorMsg.style.display = "none";
+    resetSimulation();
+    showNotification(`Loaded ${name} preset array!`, "info");
+  }
+
+  // --- 6. Event Listeners ---
+  algorithmSelect.addEventListener("change", (e) => {
+    state.currentAlgorithm = e.target.value;
+    renderPseudocodeAndTheory();
+    resetSimulation();
+    if (window.chatbot) window.chatbot.updateDynamicSuggestions();
+  });
+
+  loadArrayBtn.addEventListener("click", handleCustomArrayLoad);
+
+  customArrayInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      handleCustomArrayLoad();
+    }
+  });
+
+  // Preset Buttons
+  presetRandomBtn.addEventListener("click", () => loadPreset(generateRandomArray, "Random"));
+  presetSortedBtn.addEventListener("click", () => loadPreset(generateSortedArray, "Sorted"));
+  presetReverseBtn.addEventListener("click", () => loadPreset(generateReverseArray, "Reverse Sorted"));
+  presetNearlyBtn.addEventListener("click", () => loadPreset(generateNearlySortedArray, "Nearly Sorted"));
+  presetDuplicatesBtn.addEventListener("click", () => loadPreset(generateDuplicatesArray, "Duplicates"));
+
+  // Playback Controls
+  playPauseBtn.addEventListener("click", () => {
+    visualizer.initAudio();
+    if (state.isPlaying) {
+      pauseSimulation();
+    } else {
+      playSimulation();
+    }
+  });
+
+  stepBackBtn.addEventListener("click", stepBackward);
+  stepForwardBtn.addEventListener("click", stepForward);
+  resetBtn.addEventListener("click", resetSimulation);
+
+  timelineSlider.addEventListener("input", (e) => {
+    pauseSimulation();
+    state.currentFrameIndex = Number(e.target.value);
+    updateUIForCurrentFrame();
+  });
+
+  speedSlider.addEventListener("input", (e) => {
+    const val = Number(e.target.value);
+    const delayMap = {
+      1: { ms: 1200, label: "0.25x (Very Slow)" },
+      2: { ms: 750, label: "0.5x (Slow)" },
+      3: { ms: 400, label: "1.0x (Normal)" },
+      4: { ms: 180, label: "2.0x (Fast)" },
+      5: { ms: 60, label: "5.0x (Turbo)" }
+    };
+    const speedConfig = delayMap[val] || delayMap[3];
+    state.speedMs = speedConfig.ms;
+    speedLabel.innerText = speedConfig.label;
+  });
+
+  soundToggle.addEventListener("change", (e) => {
+    visualizer.audioEnabled = e.target.checked;
+    if (e.target.checked) {
+      visualizer.initAudio();
+      visualizer.playTone(50, 0, 100);
+    }
+  });
+
+  // --- 7. Initial Initialization ---
+  customArrayInput.value = state.rawArray.join(", ");
+  renderPseudocodeAndTheory();
+  resetSimulation();
+
+  // Initialize Algorithm Chatbot
+  window.chatbot = new AlgorithmChatbot(state);
+});
+
+</script>
+</body>
+</html>
